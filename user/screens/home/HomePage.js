@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,144 @@ import {
   PermissionsAndroid,
   FlatList,
   Linking,
-  Alert,
+  ActivityIndicator,
+  Image,
+  Dimensions,
 } from 'react-native';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+import { AppAlert } from '../../components/AppAlert';
 import Geolocation from '@react-native-community/geolocation';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as parkingService from '../../services/parkingService';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Haversine distance in km between two lat/lng points
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+// Map API allowedVehicleTypes → UI category id
+const apiTypesToCategory = (types = []) => {
+  if (types.some(t => ['motorcycle', 'bicycle'].includes(t))) return 'bike';
+  if (types.some(t => ['van'].includes(t))) return 'bus';
+  if (types.some(t => ['truck', 'rv', 'trailer'].includes(t))) return 'truck';
+  return 'car';
+};
+
+// UI category id → API vehicle_type param (first matching type)
+const categoryToApiType = {
+  car: 'car',
+  bike: 'motorcycle',
+  bus: 'van',
+  truck: 'truck',
+};
+
+// Group flat backend spaces by property → one UI item per parking lot
+const groupSpacesByProperty = (spaces, userLat, userLng) => {
+  const groups = {};
+
+  for (const space of spaces) {
+    const prop = space.propertyId;
+    if (!prop || typeof prop !== 'object') continue;
+    const propId = prop.id || prop._id;
+    if (!propId) continue;
+
+    if (!groups[propId]) {
+      const lat = prop.locationLat ?? 0;
+      const lng = prop.locationLng ?? 0;
+      const distKm = (userLat && userLng && lat && lng)
+        ? haversineKm(userLat, userLng, lat, lng) : null;
+      const distText = distKm == null ? '—'
+        : distKm < 1 ? `${Math.round(distKm * 1000)} m`
+        : `${distKm.toFixed(1)} km`;
+
+      groups[propId] = {
+        id: propId,
+        name: prop.propertyName || 'Parking Lot',
+        address: [prop.address, prop.city].filter(Boolean).join(', '),
+        city: prop.city || '',
+        latitude: lat,
+        longitude: lng,
+        distance: distText,
+        distanceKm: distKm ?? 999,
+        propertyImages: Array.isArray(prop.propertyImages) ? prop.propertyImages : [],
+        spaces: [],
+      };
+    }
+    groups[propId].spaces.push(space);
+  }
+
+  return Object.values(groups).map(group => {
+    const { spaces: groupSpaces } = group;
+    const prices = groupSpaces.map(s => s.pricePerHour).filter(Boolean);
+    const minPrice = prices.length ? Math.min(...prices) : 0;
+    const maxPrice = prices.length ? Math.max(...prices) : 0;
+
+    const totalAvailable = groupSpaces.reduce((sum, s) =>
+      sum + Math.max(0, (s.totalSpots || 1) - (s.activeBookingCount || 0)), 0);
+    const totalSpots = groupSpaces.reduce((sum, s) => sum + (s.totalSpots || 1), 0);
+
+    const amenities = [...new Set(groupSpaces.flatMap(s => {
+      const a = [];
+      if (s.hasEvCharging) a.push('ev_charging');
+      if (['covered', 'garage', 'carport'].includes(s.spaceType)) a.push('covered');
+      return a;
+    }))];
+
+    const avgRating = groupSpaces.reduce((s, sp) => s + (sp.averageRating || 0), 0) / groupSpaces.length;
+    const vehicleTypes = [...new Set(groupSpaces.flatMap(s => s.allowedVehicleTypes || []))];
+
+    const hasDailyInAny = groupSpaces.some(s => s.pricePerDay);
+    const hasMonthlyInAny = groupSpaces.some(s => s.pricePerMonth);
+    const duration = ['hourly'];
+    if (hasDailyInAny) duration.push('daily');
+    if (hasMonthlyInAny) duration.push('weekly');
+
+    // Aggregate every space image so the home modal and details page have a
+    // gallery to render even when the property itself has no top-level images.
+    const spaceImages = groupSpaces.flatMap(s =>
+      Array.isArray(s.spaceImages) ? s.spaceImages : []
+    );
+
+    return {
+      ...group,
+      price: minPrice === maxPrice ? `₹${minPrice}` : `₹${minPrice} – ₹${maxPrice}`,
+      pricePerHour: minPrice,
+      pricePerDay: groupSpaces.find(s => s.pricePerDay)?.pricePerDay,
+      pricePerMonth: groupSpaces.find(s => s.pricePerMonth)?.pricePerMonth,
+      minPrice,
+      maxPrice,
+      available: totalAvailable,
+      spots: totalSpots,
+      amenities,
+      rating: Math.round(avgRating * 10) / 10,
+      type: apiTypesToCategory(vehicleTypes),
+      allowedVehicleTypes: vehicleTypes,
+      duration,
+      // Combine property and space images for previews (modal + details page).
+      spaceImages,
+      images: [...(group.propertyImages || []), ...spaceImages].filter(
+        u => typeof u === 'string' && u.length > 0,
+      ),
+      // Pass all spaces so ParkingDetailsPage can show the space selector
+      spaces: groupSpaces,
+    };
+  }).sort((a, b) => a.distanceKm - b.distanceKm);
+};
+
+// ─── Static config ─────────────────────────────────────────────────────────
 
 // Vehicle category filters
 const categories = [
@@ -52,36 +183,6 @@ const amenityOptions = [
   { id: 'valet', label: 'Valet', icon: 'user-check' },
 ];
 
-// Base parking spot templates (will be positioned around user's location)
-const baseParkingSpots = [
-  // Car parking spots
-  { id: '1', type: 'car', price: '₹2', pricePerHour: 2, latOffset: 0.003, lngOffset: 0.002, name: 'Central Parking', address: 'Near City Center', spots: 45, available: 12, rating: 4.5, distance: '0.3 km', duration: ['hourly', 'daily'], amenities: ['security', 'cctv'] },
-  { id: '2', type: 'car', price: '₹4', pricePerHour: 4, latOffset: -0.002, lngOffset: 0.004, name: 'Metro Parking Lot', address: 'Metro Station Road', spots: 80, available: 23, rating: 4.2, distance: '0.5 km', duration: ['hourly', 'daily', 'weekly'], amenities: ['ev_charging', 'security', 'covered'] },
-  { id: '3', type: 'car', price: '₹5', pricePerHour: 5, latOffset: 0.001, lngOffset: -0.003, name: 'Plaza Parking', address: 'Shopping Plaza', spots: 60, available: 8, rating: 4.8, distance: '0.4 km', duration: ['hourly', 'daily'], amenities: ['ev_charging', 'security', 'accessible', 'valet'] },
-
-  // Bike parking spots
-  { id: '4', type: 'bike', price: '₹1', pricePerHour: 1, latOffset: -0.001, lngOffset: -0.002, name: 'Bike Station A', address: 'Park Boulevard', spots: 30, available: 15, rating: 4.6, distance: '0.2 km', duration: ['hourly', 'daily'], amenities: ['security', 'covered'] },
-  { id: '5', type: 'bike', price: '₹2', pricePerHour: 2, latOffset: 0.004, lngOffset: 0.001, name: 'Bike Hub Central', address: 'Center Street', spots: 25, available: 10, rating: 4.4, distance: '0.3 km', duration: ['hourly'], amenities: ['cctv'] },
-  { id: '6', type: 'bike', price: '₹1', pricePerHour: 1, latOffset: -0.003, lngOffset: 0.003, name: 'Two Wheeler Zone', address: 'South Avenue', spots: 40, available: 20, rating: 4.2, distance: '0.5 km', duration: ['hourly', 'daily'], amenities: ['security'] },
-
-  // Bus parking spots
-  { id: '7', type: 'bus', price: '₹8', pricePerHour: 8, latOffset: 0.005, lngOffset: -0.001, name: 'Bus Terminal Lot', address: 'Bus Stand Road', spots: 20, available: 8, rating: 4.3, distance: '0.6 km', duration: ['hourly', 'daily', 'weekly'], amenities: ['security', 'accessible', 'cctv'] },
-  { id: '8', type: 'bus', price: '₹10', pricePerHour: 10, latOffset: -0.004, lngOffset: -0.004, name: 'Coach Parking Area', address: 'Highway Service Road', spots: 15, available: 5, rating: 4.5, distance: '0.4 km', duration: ['daily', 'weekly'], amenities: ['security', 'covered', 'accessible'] },
-
-  // Truck parking spots
-  { id: '9', type: 'truck', price: '₹12', pricePerHour: 12, latOffset: 0.002, lngOffset: 0.005, name: 'Truck Stop Plaza', address: 'Industrial Area', spots: 25, available: 12, rating: 4.1, distance: '0.7 km', duration: ['hourly', 'daily', 'weekly'], amenities: ['security', 'cctv'] },
-  { id: '10', type: 'truck', price: '₹15', pricePerHour: 15, latOffset: -0.005, lngOffset: 0.002, name: 'Heavy Vehicle Lot', address: 'Outer Ring Road', spots: 30, available: 18, rating: 4.0, distance: '0.8 km', duration: ['daily', 'weekly'], amenities: ['security', 'accessible'] },
-  { id: '11', type: 'truck', price: '₹10', pricePerHour: 10, latOffset: 0.003, lngOffset: -0.005, name: 'Freight Parking', address: 'Commerce District', spots: 20, available: 7, rating: 4.2, distance: '0.5 km', duration: ['hourly', 'daily'], amenities: ['ev_charging', 'security', 'covered', 'cctv'] },
-];
-
-// Function to generate parking spots around a location
-const generateParkingSpotsAroundLocation = (latitude, longitude) => {
-  return baseParkingSpots.map(spot => ({
-    ...spot,
-    latitude: latitude + spot.latOffset,
-    longitude: longitude + spot.lngOffset,
-  }));
-};
 
 // Default to Delhi, India for demo
 const initialRegion = {
@@ -178,6 +279,8 @@ const mapStyle = [
 ];
 
 const HomePage = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = (Platform.OS === 'ios' ? 50 : 56) + insets.bottom;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedSpot, setSelectedSpot] = useState(null);
@@ -195,14 +298,29 @@ const HomePage = ({ navigation }) => {
 
   // Geolocation state
   const [userLocation, setUserLocation] = useState(null);
-  const [locationName, setLocationName] = useState('Getting location...');
+  const [locationName, setLocationName] = useState('Locating...');
   const [mapRegion, setMapRegion] = useState(initialRegion);
+  // True when `userLocation` is the Delhi fallback rather than a real fix.
+  // Used to (a) make the location pill open a "turn on location" prompt
+  // when tapped, and (b) decide whether to pop the prompt automatically
+  // on first failure.
+  const [isLocationFallback, setIsLocationFallback] = useState(false);
   const mapRef = useRef(null);
+  const locationResolvedRef = useRef(false); // prevents error state from overwriting a good location name
+  const locationLoggedRef = useRef(false);   // ensures lat/lng is logged only once
+  const fetchSpotsRef = useRef(null);        // always points to latest fetchSpots (avoids stale closure)
 
-  // Dynamic parking spots based on user location
-  const [parkingSpots, setParkingSpots] = useState(() =>
-    generateParkingSpotsAroundLocation(initialRegion.latitude, initialRegion.longitude)
-  );
+  // Parking spots from backend
+  const [parkingSpots, setParkingSpots] = useState([]);
+  const [isLoadingSpots, setIsLoadingSpots] = useState(false);
+  const [spotsError, setSpotsError] = useState('');
+
+  // Measured height of the "Nearby Parking" bottom sheet — used to pin the
+  // floating list-toggle and my-location buttons just above it. The sheet
+  // has dynamic height (loading state vs. cards vs. error), so a hardcoded
+  // bottom offset would either overlap the sheet or float in mid-screen.
+  const [bottomSheetHeight, setBottomSheetHeight] = useState(0);
+  const FLOATING_BUTTON_GAP = 12;
 
   // Hide/show bottom tab bar based on search focus
   useEffect(() => {
@@ -228,68 +346,234 @@ const HomePage = ({ navigation }) => {
     });
   }, [isSearchFocused, navigation]);
 
-  // Request location permission and get current location on mount
+  // Open the device's *system-level* Location Settings (the GPS toggle),
+  // not the app's permission page. On Android the GPS toggle lives at a
+  // different settings screen than app permissions, and `openSettings()`
+  // sends users to the latter. We try the location-source intent first;
+  // if it fails (older Android, restricted device), we fall back to the
+  // app settings page.
+  const openSystemLocationSettings = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        await Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
+        return;
+      } catch (e) {
+        // Fall through to app settings
+      }
+    }
+    Linking.openSettings();
+  };
+
+  const promptEnableLocationServices = () => {
+    AppAlert.alert(
+      'Turn on location',
+      "Your device's location is off, so we can't show parking spots near you. Turn on location in Settings, then come back.",
+      [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Open Settings', onPress: openSystemLocationSettings },
+      ],
+    );
+  };
+
+  // Tap-handler for the header location pill: when on the fallback (real
+  // location couldn't be resolved), prompt to enable services; otherwise
+  // re-center the map on the user's actual location.
+  const handleLocationPillPress = () => {
+    if (isLocationFallback) {
+      promptEnableLocationServices();
+    } else {
+      centerOnUserLocation();
+    }
+  };
+
+  // Reverse geocode coordinates → human-readable area name
+  const reverseGeocode = async (latitude, longitude) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'ParkBnbApp/1.0 (aibinnovationsai@gmail.com)',
+            'Accept-Language': 'en',
+          },
+        }
+      );
+      const data = await res.json();
+      if (data.address) {
+        const a = data.address;
+        // Indian addresses: suburb > neighbourhood > city_district > town > city > state_district > district > county
+        const name =
+          a.suburb || a.neighbourhood || a.city_district ||
+          a.town || a.city || a.state_district ||
+          a.district || a.county || a.state || null;
+        if (name) setLocationName(name);
+      }
+    } catch {
+      // Geocoding failed — keep existing locationName
+    }
+  };
+
+  // ─── Fetch spots from backend ───────────────────────────────────────────────
+  const fetchSpots = useCallback(async (lat, lng, overrides = {}) => {
+    setIsLoadingSpots(true);
+    setSpotsError('');
+    try {
+      const priceRange = priceRanges.find(p => p.id === (overrides.priceRange ?? selectedPriceRange));
+      const category = overrides.category ?? selectedCategory;
+      const amenities = overrides.amenities ?? selectedAmenities;
+
+      const params = { lat, lng, radius: 10, limit: 50 };
+      if (category !== 'all') params.vehicleType = categoryToApiType[category];
+      if (priceRange && priceRange.id !== 'all') {
+        params.minPrice = priceRange.min;
+        params.maxPrice = priceRange.max;
+      }
+      if (amenities.includes('ev_charging')) params.hasEvCharging = true;
+
+      const response = await parkingService.searchNearbySpaces(params);
+      const mapped = groupSpacesByProperty(response.spaces || [], lat, lng);
+      setParkingSpots(mapped);
+    } catch (err) {
+      const code = err?.code || '';
+      if (code === 'NETWORK_ERROR' || code === 'NETWORK_TIMEOUT') {
+        setSpotsError('No internet connection.');
+      } else {
+        setSpotsError('Could not load parking spots.');
+      }
+      setParkingSpots([]);
+    } finally {
+      setIsLoadingSpots(false);
+    }
+  }, [selectedCategory, selectedPriceRange, selectedAmenities]);
+
+  // Keep ref in sync so location callbacks always call the latest fetchSpots
+  useEffect(() => { fetchSpotsRef.current = fetchSpots; });
+
+  // Trigger the initial fetch exactly once, as soon as userLocation is first set
+  const initialFetchDoneRef = useRef(false);
   useEffect(() => {
+    if (userLocation && !initialFetchDoneRef.current) {
+      initialFetchDoneRef.current = true;
+      fetchSpotsRef.current(userLocation.latitude, userLocation.longitude);
+    }
+  }, [userLocation]);
+
+  // Request location permission and get current location on mount.
+  //
+  // Why a fallback to `initialRegion` (Delhi):
+  // The home screen's listing fetch only fires once `userLocation` is set
+  // (see the effect above). If the device has location services off, or the
+  // user denies permission, `userLocation` would stay null and the user sees
+  // an empty home screen with no way to discover that listings exist. We
+  // pin the fallback to Delhi so the user always sees *some* listings, and
+  // we set a clear `locationName` so they know the location wasn't real.
+  useEffect(() => {
+    const useFallbackLocation = (label) => {
+      if (locationResolvedRef.current) return;
+      locationResolvedRef.current = true;
+      // Don't overwrite the map region — keep `initialRegion` (Delhi) so
+      // the map and the listing fetch use the same default coordinates.
+      setUserLocation({
+        latitude: initialRegion.latitude,
+        longitude: initialRegion.longitude,
+      });
+      setLocationName(label);
+      setIsLocationFallback(true);
+    };
+
     const getCurrentLocation = () => {
       Geolocation.getCurrentPosition(
         (position) => {
+          if (locationResolvedRef.current) return; // MapView already got it
+          locationResolvedRef.current = true;
           const { latitude, longitude } = position.coords;
+          if (!locationLoggedRef.current) {
+            locationLoggedRef.current = true;
+            console.log('[Location] Resolved via Geolocation.getCurrentPosition:', { latitude, longitude });
+          }
           const newRegion = {
             latitude,
             longitude,
             latitudeDelta: 0.02,
             longitudeDelta: 0.02,
           };
-
           setUserLocation({ latitude, longitude });
           setMapRegion(newRegion);
-          setParkingSpots(generateParkingSpotsAroundLocation(latitude, longitude));
-
           if (mapRef.current) {
             mapRef.current.animateToRegion(newRegion, 1000);
           }
-
-          // Reverse geocode to get location name
-          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
-            .then(res => res.json())
-            .then(data => {
-              if (data.address) {
-                const { city, town, village, suburb, county } = data.address;
-                setLocationName(city || town || village || suburb || county || 'Current Location');
-              }
-            })
-            .catch(() => setLocationName('Current Location'));
+          reverseGeocode(latitude, longitude);
+          // fetchSpots is triggered by the userLocation useEffect above
         },
         (error) => {
-          console.warn('Location error:', error);
-          // Keep showing parking spots at initial region
-          setLocationName('Demo Location');
+          if (locationResolvedRef.current) return; // MapView already got it
+          console.warn('[Location] getCurrentPosition failed:', {
+            code: error?.code,
+            message: error?.message,
+          });
+          // code 1 = PERMISSION_DENIED (shouldn't happen if we got past the
+          //          permission gate, but possible if the user revokes mid-flight)
+          // code 2 = POSITION_UNAVAILABLE — device location services are OFF
+          // code 3 = TIMEOUT — couldn't get a fix in 20s
+          const label =
+            error?.code === 1 ? 'Permission denied' :
+            error?.code === 2 ? 'Turn on location' :
+            error?.code === 3 ? 'Location timed out' :
+            'Location unavailable';
+          useFallbackLocation(label);
+          // Code 2 = device location services are OFF. Permission alone
+          // can't fix this — the user has to enable location in system
+          // settings. Pop a prompt with a deep link.
+          if (error?.code === 2) {
+            promptEnableLocationServices();
+          }
         },
-        { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
+        { enableHighAccuracy: false, timeout: 20000, maximumAge: 30000 }
       );
     };
 
     const requestLocationPermission = async () => {
       if (Platform.OS === 'android') {
         try {
-          const granted = await PermissionsAndroid.request(
+          const alreadyGranted = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+          );
+          console.log('[Location] permission alreadyGranted=', alreadyGranted);
+          if (alreadyGranted) {
+            getCurrentLocation();
+            return;
+          }
+
+          const result = await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
             {
               title: 'Location Permission',
-              message: 'This app needs access to your location to show nearby parking spots.',
+              message: 'ParkBnb needs your location to show nearby parking spots.',
               buttonNeutral: 'Ask Me Later',
               buttonNegative: 'Cancel',
-              buttonPositive: 'OK',
+              buttonPositive: 'Allow',
             }
           );
-          if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('[Location] permission request result=', result);
+
+          if (result === PermissionsAndroid.RESULTS.GRANTED) {
             getCurrentLocation();
+          } else if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+            useFallbackLocation('Location disabled');
+            AppAlert.alert(
+              'Location Permission Required',
+              'Please enable location access in Settings to see nearby parking spots.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Open Settings', onPress: () => Linking.openSettings() },
+              ]
+            );
           } else {
-            setLocationName('Demo Location');
+            useFallbackLocation('Location disabled');
           }
         } catch (err) {
-          console.warn(err);
-          setLocationName('Demo Location');
+          console.warn('[Location] permission error:', err);
+          useFallbackLocation('Location unavailable');
         }
       } else {
         getCurrentLocation();
@@ -302,8 +586,13 @@ const HomePage = ({ navigation }) => {
   // Handle user location update from MapView
   const handleUserLocationChange = async (event) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
-    if (!userLocation) {
-      // First time getting location - animate to it and generate parking spots nearby
+    if (!locationResolvedRef.current) {
+      // First fix — animate map and generate nearby spots
+      locationResolvedRef.current = true;
+      if (!locationLoggedRef.current) {
+        locationLoggedRef.current = true;
+        console.log('[Location] Resolved via MapView onUserLocationChange:', { latitude, longitude });
+      }
       const newRegion = {
         latitude,
         longitude,
@@ -312,27 +601,11 @@ const HomePage = ({ navigation }) => {
       };
       setUserLocation({ latitude, longitude });
       setMapRegion(newRegion);
-
-      // Generate parking spots around user's current location
-      setParkingSpots(generateParkingSpotsAroundLocation(latitude, longitude));
-
       if (mapRef.current) {
         mapRef.current.animateToRegion(newRegion, 1000);
       }
-      // Reverse geocode to get location name
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-        );
-        const data = await response.json();
-        if (data.address) {
-          const { city, town, village, suburb, county } = data.address;
-          const locationText = city || town || village || suburb || county || 'Current Location';
-          setLocationName(locationText);
-        }
-      } catch (error) {
-        setLocationName('Current Location');
-      }
+      reverseGeocode(latitude, longitude);
+      // fetchSpots is triggered by the userLocation useEffect above
     } else {
       setUserLocation({ latitude, longitude });
     }
@@ -357,7 +630,7 @@ const HomePage = ({ navigation }) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
 
     Linking.openURL(url).catch(() => {
-      Alert.alert('Error', 'Unable to open maps application');
+      AppAlert.alert('Error', 'Unable to open maps application');
     });
   };
 
@@ -372,10 +645,11 @@ const HomePage = ({ navigation }) => {
       const data = await response.json();
 
       if (data && data.length > 0) {
-        const { lat, lon } = data[0];
+        const parsedLat = parseFloat(data[0].lat);
+        const parsedLng = parseFloat(data[0].lon);
         const newRegion = {
-          latitude: parseFloat(lat),
-          longitude: parseFloat(lon),
+          latitude: parsedLat,
+          longitude: parsedLng,
           latitudeDelta: 0.02,
           longitudeDelta: 0.02,
         };
@@ -383,6 +657,8 @@ const HomePage = ({ navigation }) => {
         if (mapRef.current) {
           mapRef.current.animateToRegion(newRegion, 1000);
         }
+        // Fetch parking spots for the searched location
+        fetchSpots(parsedLat, parsedLng);
       }
     } catch (error) {
       console.log('Location search error:', error);
@@ -398,11 +674,18 @@ const HomePage = ({ navigation }) => {
     );
   };
 
-  // Reset all filters
+  // Reset all filters and re-fetch
   const resetFilters = () => {
     setSelectedPriceRange('all');
     setSelectedDuration('all');
     setSelectedAmenities([]);
+    if (userLocation) {
+      fetchSpots(userLocation.latitude, userLocation.longitude, {
+        priceRange: 'all',
+        amenities: [],
+        category: selectedCategory,
+      });
+    }
   };
 
   // Get active filter count
@@ -457,7 +740,7 @@ const HomePage = ({ navigation }) => {
 
       return true;
     });
-  }, [searchQuery, selectedCategory, selectedPriceRange, selectedDuration, selectedAmenities]);
+  }, [parkingSpots, searchQuery, selectedCategory, selectedPriceRange, selectedDuration, selectedAmenities]);
 
   const handleSpotPress = (spot) => {
     setSelectedSpot(spot.id === selectedSpot ? null : spot.id);
@@ -470,44 +753,9 @@ const HomePage = ({ navigation }) => {
     setSelectedSpot(null);
   };
 
-  // Render list view header with search bar and map toggle
+  // Render list view header — results count and view toggle only
   const renderListHeader = () => (
     <View style={styles.listHeaderContainer}>
-      {/* Search Bar */}
-      <View style={styles.listSearchSection}>
-        <View style={styles.listSearchBar}>
-          <Icon name="search" size={20} color="#9CA3AF" />
-          <TextInput
-            style={styles.listSearchInput}
-            placeholder="Search Location"
-            placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            onSubmitEditing={handleLocationSearch}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Icon name="x" size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.gpsButton} onPress={centerOnUserLocation}>
-            <Icon name="crosshair" size={18} color="#1A73E8" />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={styles.listFilterButton} onPress={() => setFilterModalVisible(true)}>
-          <Icon name="sliders" size={20} color="#FFFFFF" />
-          {activeFilterCount > 0 && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Results count and view toggle tabs */}
       <View style={styles.listResultsRow}>
         <View style={styles.resultsInfo}>
           <Text style={styles.resultsCount}>{filteredSpots.length} parking spots</Text>
@@ -538,7 +786,11 @@ const HomePage = ({ navigation }) => {
     >
       <View style={styles.parkingCardImage}>
         <MaterialIcon name="parking" size={32} color="#1A73E8" />
-        {item.available < 5 && (
+        {item.available === 0 ? (
+          <View style={[styles.lowAvailabilityBadgeCard, { backgroundColor: '#EF4444' }]}>
+            <Text style={styles.lowAvailabilityTextCard}>Fully Booked</Text>
+          </View>
+        ) : item.available < 5 && (
           <View style={styles.lowAvailabilityBadgeCard}>
             <Text style={styles.lowAvailabilityTextCard}>{item.available} left</Text>
           </View>
@@ -560,7 +812,9 @@ const HomePage = ({ navigation }) => {
           </View>
           <View style={styles.metaItem}>
             <MaterialIcon name={item.type === 'car' ? 'car' : item.type === 'bike' ? 'motorbike' : item.type === 'bus' ? 'bus' : 'truck'} size={12} color="#6B7280" />
-            <Text style={styles.metaText}>{item.available} spots</Text>
+            <Text style={[styles.metaText, item.available === 0 && { color: '#EF4444' }]}>
+              {item.available === 0 ? 'No spots left' : `${item.available} spots`}
+            </Text>
           </View>
         </View>
         <View style={styles.parkingCardAmenities}>
@@ -579,12 +833,18 @@ const HomePage = ({ navigation }) => {
           <View>
             <Text style={styles.parkingCardPrice}>{item.price}<Text style={styles.parkingCardPriceUnit}>/hr</Text></Text>
           </View>
-          <TouchableOpacity
-            style={styles.parkingCardBookButton}
-            onPress={() => navigation.navigate('ParkingDetails', { parkingData: item })}
-          >
-            <Text style={styles.parkingCardBookButtonText}>Book Now</Text>
-          </TouchableOpacity>
+          {item.available === 0 ? (
+            <View style={[styles.parkingCardBookButton, { backgroundColor: '#9CA3AF' }]}>
+              <Text style={styles.parkingCardBookButtonText}>Booked</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.parkingCardBookButton}
+              onPress={() => navigation.navigate('ParkingDetails', { parkingData: item })}
+            >
+              <Text style={styles.parkingCardBookButtonText}>Book Now</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -603,6 +863,11 @@ const HomePage = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {isLoadingSpots ? (
+        <ActivityIndicator color="#1A73E8" style={{ marginVertical: 16 }} />
+      ) : spotsError ? (
+        <Text style={styles.spotsErrorText}>{spotsError}</Text>
+      ) : (
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -620,7 +885,11 @@ const HomePage = ({ navigation }) => {
           >
             <View style={styles.recommendationImageLeft}>
               <MaterialIcon name="parking" size={24} color="#1A73E8" />
-              {spot.available < 5 && (
+              {spot.available === 0 ? (
+                <View style={[styles.lowAvailabilityBadge, { backgroundColor: '#EF4444' }]}>
+                  <Text style={styles.lowAvailabilityText}>Booked</Text>
+                </View>
+              ) : spot.available < 5 && (
                 <View style={styles.lowAvailabilityBadge}>
                   <Text style={styles.lowAvailabilityText}>{spot.available} left</Text>
                 </View>
@@ -636,24 +905,33 @@ const HomePage = ({ navigation }) => {
                 <Icon name="navigation" size={12} color="#6B7280" />
                 <Text style={styles.recommendationDistance}>{spot.distance}</Text>
                 <Text style={styles.recommendationDot}>•</Text>
-                <Text style={styles.recommendationSpots}>{spot.available} spots</Text>
+                <Text style={[styles.recommendationSpots, spot.available === 0 && { color: '#EF4444' }]}>
+                  {spot.available === 0 ? 'No spots left' : `${spot.available} spots`}
+                </Text>
               </View>
 
               <View style={styles.recommendationFooter}>
                 <Text style={styles.recommendationPrice}>{spot.price}<Text style={styles.recommendationPriceUnit}>/hr</Text></Text>
-                <TouchableOpacity
-                  style={styles.recommendationBookButton}
-                  onPress={() => {
-                    navigation.navigate('ParkingDetails', { parkingData: spot });
-                  }}
-                >
-                  <Text style={styles.recommendationBookButtonText}>Book</Text>
-                </TouchableOpacity>
+                {spot.available === 0 ? (
+                  <View style={[styles.recommendationBookButton, { backgroundColor: '#9CA3AF' }]}>
+                    <Text style={styles.recommendationBookButtonText}>Booked</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.recommendationBookButton}
+                    onPress={() => {
+                      navigation.navigate('ParkingDetails', { parkingData: spot });
+                    }}
+                  >
+                    <Text style={styles.recommendationBookButtonText}>Book</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
+      )}
     </View>
   );
 
@@ -681,120 +959,75 @@ const HomePage = ({ navigation }) => {
         </>
       }
       ListEmptyComponent={
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIconContainer}>
-            <Icon name="search" size={40} color="#9CA3AF" />
+        isLoadingSpots ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color="#1A73E8" />
+            <Text style={[styles.emptySubtitle, { marginTop: 16 }]}>Finding parking spots nearby...</Text>
           </View>
-          <Text style={styles.emptyTitle}>No Parking Found</Text>
-          <Text style={styles.emptySubtitle}>
-            Try adjusting your filters or search in a different area
-          </Text>
-          <TouchableOpacity style={styles.emptyButton} onPress={resetFilters}>
-            <Text style={styles.emptyButtonText}>Reset Filters</Text>
-          </TouchableOpacity>
-        </View>
+        ) : spotsError ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Icon name="wifi-off" size={40} color="#9CA3AF" />
+            </View>
+            <Text style={styles.emptyTitle}>Could Not Load Spots</Text>
+            <Text style={styles.emptySubtitle}>{spotsError}</Text>
+            <TouchableOpacity style={styles.emptyButton} onPress={() => userLocation && fetchSpots(userLocation.latitude, userLocation.longitude)}>
+              <Text style={styles.emptyButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : !userLocation ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Icon name="map-pin" size={40} color="#9CA3AF" />
+            </View>
+            <Text style={styles.emptyTitle}>Waiting for Location</Text>
+            <Text style={styles.emptySubtitle}>Allow location access to see nearby parking spots</Text>
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Icon name="search" size={40} color="#9CA3AF" />
+            </View>
+            <Text style={styles.emptyTitle}>No Parking Found</Text>
+            <Text style={styles.emptySubtitle}>
+              Try adjusting your filters or search in a different area
+            </Text>
+            <TouchableOpacity style={styles.emptyButton} onPress={resetFilters}>
+              <Text style={styles.emptyButtonText}>Reset Filters</Text>
+            </TouchableOpacity>
+          </View>
+        )
       }
     />
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']} mode="padding">
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.locationContainer} onPress={centerOnUserLocation}>
-          <View style={styles.locationIconWrapper}>
-            <Icon name="map-pin" size={18} color="#1A73E8" />
-          </View>
-          <View>
-            <Text style={styles.locationLabel}>Current Location</Text>
-            <Text style={styles.locationName}>{locationName}</Text>
-          </View>
-        </TouchableOpacity>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Icon name="bell" size={22} color="#1A1A2E" />
-            <View style={styles.notificationBadge} />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']} mode="padding">
+      {/* Header Panel - covers location row, search bar, and category buttons */}
+      <View style={styles.headerPanel}>
+        {/* Location Row */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.locationContainer} onPress={handleLocationPillPress}>
+            <View style={styles.locationIconWrapper}>
+              <Icon name="map-pin" size={18} color="#1A73E8" />
+            </View>
+            <View>
+              <Text style={styles.locationLabel}>Current Location</Text>
+              <Text style={styles.locationName}>{locationName}</Text>
+            </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.subscriptionButton} onPress={() => navigation.navigate('Subscription')}>
-            <MaterialIcon name="ticket-percent" size={22} color="#F59E0B" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Map Container - Always Mounted to prevent black flash on Android */}
-      <View
-        style={[
-          styles.mapContainerAlwaysMounted,
-          viewMode !== 'map' && styles.hiddenContainer
-        ]}
-        pointerEvents={viewMode === 'map' ? 'auto' : 'none'}
-      >
-        <View style={styles.mapWrapper}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            initialRegion={mapRegion}
-            showsUserLocation={true}
-            showsMyLocationButton={false}
-            followsUserLocation={true}
-            onUserLocationChange={handleUserLocationChange}
-            customMapStyle={mapStyle}
-            loadingEnabled={true}
-            loadingIndicatorColor="#1A73E8"
-            loadingBackgroundColor="#FFFFFF"
-            renderToHardwareTextureAndroid={true}
-            moveOnMarkerPress={false}
-          >
-          {/* User Location Marker */}
-          {userLocation && (
-            <>
-              {/* Outer pulsing circle */}
-              <Circle
-                center={userLocation}
-                radius={100}
-                strokeColor="rgba(26, 115, 232, 0.3)"
-                fillColor="rgba(26, 115, 232, 0.1)"
-              />
-              {/* User location marker */}
-              <Marker
-                coordinate={userLocation}
-                anchor={{ x: 0.5, y: 0.5 }}
-              >
-                <View style={styles.userLocationMarker}>
-                  <View style={styles.userLocationOuter}>
-                    <View style={styles.userLocationInner} />
-                  </View>
-                </View>
-              </Marker>
-            </>
-          )}
-          {filteredSpots.map((spot) => (
-            <Marker
-              key={spot.id}
-              coordinate={{
-                latitude: spot.latitude,
-                longitude: spot.longitude,
-              }}
-              onPress={() => handleSpotPress(spot)}
-              tracksViewChanges={Platform.OS === 'ios'}
-            >
-              <View style={styles.pinWrapper}>
-                <View style={[styles.pinContainer, selectedSpot === spot.id && styles.pinContainerActive]}>
-                  <View style={[styles.pinCircle, selectedSpot === spot.id && styles.pinCircleActive]}>
-                    <Text style={[styles.pinPrice, selectedSpot === spot.id && styles.pinPriceActive]}>
-                      {spot.price}
-                    </Text>
-                  </View>
-                  <View style={[styles.pinTail, selectedSpot === spot.id && styles.pinTailActive]} />
-                </View>
-              </View>
-            </Marker>
-          ))}
-        </MapView>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.notificationButton}>
+              <Icon name="bell" size={22} color="#1A1A2E" />
+              <View style={styles.notificationBadge} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.subscriptionButton} onPress={() => navigation.navigate('Subscription')}>
+              <MaterialIcon name="ticket-percent" size={22} color="#F59E0B" />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Search Section - Floating on Map */}
+        {/* Search Section */}
         <View style={styles.searchSection}>
           <View style={styles.searchBar}>
             <Icon name="search" size={20} color="#9CA3AF" />
@@ -828,7 +1061,7 @@ const HomePage = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Category Filters - Floating on Map */}
+        {/* Category Filters */}
         <View style={styles.categorySection}>
           <View style={styles.categoryScroll}>
             {categories.map((category) => (
@@ -839,7 +1072,12 @@ const HomePage = ({ navigation }) => {
                   selectedCategory === category.id && styles.categoryButtonActive,
                   { backgroundColor: selectedCategory === category.id ? category.color : '#FFFFFF' },
                 ]}
-                onPress={() => setSelectedCategory(category.id)}
+                onPress={() => {
+                  setSelectedCategory(category.id);
+                  if (userLocation) {
+                    fetchSpots(userLocation.latitude, userLocation.longitude, { category: category.id });
+                  }
+                }}
               >
                 <MaterialIcon
                   name={category.icon}
@@ -850,103 +1088,220 @@ const HomePage = ({ navigation }) => {
             ))}
           </View>
         </View>
+      </View>
 
-        {/* List View Toggle Button */}
-        {!isSearchFocused && (
-          <TouchableOpacity
-            style={styles.listToggleButton}
-            onPress={() => setViewMode('list')}
-          >
-            <Icon name="list" size={20} color="#1A73E8" />
-          </TouchableOpacity>
-        )}
-
-        {/* My Location Button */}
-        {!isSearchFocused && (
-          <TouchableOpacity
-            style={styles.myLocationButton}
-            onPress={centerOnUserLocation}
-          >
-            <Icon name="navigation" size={20} color="#1A73E8" />
-          </TouchableOpacity>
-        )}
-
-        {/* Parking Recommendations Section */}
-        {!isSearchFocused && (
-        <View style={styles.recommendationsSection}>
-          <View style={styles.recommendationsHeader}>
-            <View style={styles.recommendationsTitleRow}>
-              <Icon name="zap" size={18} color="#F59E0B" />
-              <Text style={styles.recommendationsTitle}>Nearby Parking</Text>
-            </View>
-            <TouchableOpacity onPress={() => setAllRecommendationsVisible(true)}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
+      {/* Map + List Area */}
+      <View style={[styles.mapArea, { paddingBottom: tabBarHeight }]}>
+        {/* Map Container - Always Mounted to prevent black flash on Android */}
+        <View
+          style={[
+            styles.mapContainerAlwaysMounted,
+            viewMode !== 'map' && styles.hiddenContainer
+          ]}
+          pointerEvents={viewMode === 'map' ? 'auto' : 'none'}
+        >
+          <View style={styles.mapWrapper}>
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              provider={PROVIDER_GOOGLE}
+              initialRegion={mapRegion}
+              showsUserLocation={true}
+              showsMyLocationButton={false}
+              followsUserLocation={true}
+              onUserLocationChange={handleUserLocationChange}
+              customMapStyle={mapStyle}
+              loadingEnabled={true}
+              loadingIndicatorColor="#1A73E8"
+              loadingBackgroundColor="#FFFFFF"
+              renderToHardwareTextureAndroid={true}
+              moveOnMarkerPress={false}
+            >
+            {/* User Location Marker */}
+            {userLocation && (
+              <>
+                {/* Outer pulsing circle */}
+                <Circle
+                  center={userLocation}
+                  radius={100}
+                  strokeColor="rgba(26, 115, 232, 0.3)"
+                  fillColor="rgba(26, 115, 232, 0.1)"
+                />
+                {/* User location marker */}
+                <Marker
+                  coordinate={userLocation}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                >
+                  <View style={styles.userLocationMarker}>
+                    <View style={styles.userLocationOuter}>
+                      <View style={styles.userLocationInner} />
+                    </View>
+                  </View>
+                </Marker>
+              </>
+            )}
+            {filteredSpots.map((spot) => {
+              const isRange = spot.minPrice != null && spot.maxPrice != null && spot.minPrice !== spot.maxPrice;
+              const active = selectedSpot === spot.id;
+              return (
+                <Marker
+                  key={spot.id}
+                  coordinate={{
+                    latitude: spot.latitude,
+                    longitude: spot.longitude,
+                  }}
+                  onPress={() => handleSpotPress(spot)}
+                  tracksViewChanges={Platform.OS === 'ios'}
+                >
+                  <View style={styles.pinWrapper}>
+                    <View style={[styles.pinContainer, active && styles.pinContainerActive]}>
+                      {isRange ? (
+                        <View style={[styles.pinBox, active && styles.pinBoxActive]}>
+                          <Text style={[styles.pinBoxPrice, active && styles.pinPriceActive]}>
+                            {'₹'}{spot.minPrice}{'–'}{'₹'}{spot.maxPrice}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={[styles.pinCircle, active && styles.pinCircleActive]}>
+                          <Text style={[styles.pinPrice, active && styles.pinPriceActive]}>
+                            {spot.price}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={[styles.pinTail, active && styles.pinTailActive]} />
+                    </View>
+                  </View>
+                </Marker>
+              );
+            })}
+          </MapView>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recommendationsScrollContent}
+          {/* List View Toggle Button — pinned just above the bottom sheet */}
+          {!isSearchFocused && bottomSheetHeight > 0 && (
+            <TouchableOpacity
+              style={[styles.listToggleButton, { bottom: bottomSheetHeight + FLOATING_BUTTON_GAP }]}
+              onPress={() => setViewMode('list')}
+            >
+              <Icon name="list" size={20} color="#1A73E8" />
+            </TouchableOpacity>
+          )}
+
+          {/* My Location Button — pinned just above the bottom sheet */}
+          {!isSearchFocused && bottomSheetHeight > 0 && (
+            <TouchableOpacity
+              style={[styles.myLocationButton, { bottom: bottomSheetHeight + FLOATING_BUTTON_GAP }]}
+              onPress={centerOnUserLocation}
+            >
+              <Icon name="navigation" size={20} color="#1A73E8" />
+            </TouchableOpacity>
+          )}
+
+          {/* Parking Recommendations Section */}
+          {!isSearchFocused && (
+          <View
+            style={styles.recommendationsSection}
+            onLayout={(e) => {
+              const h = e.nativeEvent.layout.height;
+              if (h && Math.abs(h - bottomSheetHeight) > 1) setBottomSheetHeight(h);
+            }}
           >
-            {filteredSpots.slice(0, 6).map((spot) => (
-              <TouchableOpacity
-                key={spot.id}
-                style={[
-                  styles.recommendationCard,
-                  selectedSpot === spot.id && styles.recommendationCardSelected,
-                ]}
-                onPress={() => handleSpotPress(spot)}
-                activeOpacity={0.9}
-              >
-                {/* Card Image */}
-                <View style={styles.recommendationImageLeft}>
-                  <MaterialIcon name="parking" size={24} color="#1A73E8" />
-                  {spot.available < 5 && (
-                    <View style={styles.lowAvailabilityBadge}>
-                      <Text style={styles.lowAvailabilityText}>{spot.available} left</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Card Content */}
-                <View style={styles.recommendationContent}>
-                  <View style={styles.recommendationCardHeader}>
-                    <Text style={styles.recommendationName} numberOfLines={1}>{spot.name}</Text>
-                  </View>
-
-                  <View style={styles.recommendationMeta}>
-                    <Icon name="navigation" size={12} color="#6B7280" />
-                    <Text style={styles.recommendationDistance}>{spot.distance}</Text>
-                    <Text style={styles.recommendationDot}>•</Text>
-                    <Text style={styles.recommendationSpots}>{spot.available} spots</Text>
-                  </View>
-
-                  <View style={styles.recommendationFooter}>
-                    <Text style={styles.recommendationPrice}>{spot.price}<Text style={styles.recommendationPriceUnit}>/hr</Text></Text>
-                    <TouchableOpacity
-                      style={styles.recommendationBookButton}
-                      onPress={() => {
-                        navigation.navigate('ParkingDetails', { parkingData: spot });
-                      }}
-                    >
-                      <Text style={styles.recommendationBookButtonText}>Book</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+            <View style={styles.recommendationsHeader}>
+              <View style={styles.recommendationsTitleRow}>
+                <Icon name="zap" size={18} color="#F59E0B" />
+                <Text style={styles.recommendationsTitle}>Nearby Parking</Text>
+              </View>
+              <TouchableOpacity onPress={() => setAllRecommendationsVisible(true)}>
+                <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            </View>
+
+            {isLoadingSpots ? (
+              <ActivityIndicator color="#1A73E8" style={{ marginVertical: 16, marginHorizontal: 16 }} />
+            ) : spotsError ? (
+              <Text style={[styles.spotsErrorText, { marginHorizontal: 16 }]}>{spotsError}</Text>
+            ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendationsScrollContent}
+            >
+              {filteredSpots.slice(0, 6).map((spot) => (
+                <TouchableOpacity
+                  key={spot.id}
+                  style={[
+                    styles.recommendationCard,
+                    selectedSpot === spot.id && styles.recommendationCardSelected,
+                  ]}
+                  onPress={() => handleSpotPress(spot)}
+                  activeOpacity={0.9}
+                >
+                  {/* Card Image */}
+                  <View style={styles.recommendationImageLeft}>
+                    <MaterialIcon name="parking" size={24} color="#1A73E8" />
+                    {spot.available === 0 ? (
+                      <View style={[styles.lowAvailabilityBadge, { backgroundColor: '#EF4444' }]}>
+                        <Text style={styles.lowAvailabilityText}>Booked</Text>
+                      </View>
+                    ) : spot.available < 5 && (
+                      <View style={styles.lowAvailabilityBadge}>
+                        <Text style={styles.lowAvailabilityText}>{spot.available} left</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Card Content */}
+                  <View style={styles.recommendationContent}>
+                    <View style={styles.recommendationCardHeader}>
+                      <Text style={styles.recommendationName} numberOfLines={1}>{spot.name}</Text>
+                    </View>
+
+                    <View style={styles.recommendationMeta}>
+                      <Icon name="navigation" size={12} color="#6B7280" />
+                      <Text style={styles.recommendationDistance}>{spot.distance}</Text>
+                      <Text style={styles.recommendationDot}>•</Text>
+                      <Text style={[styles.recommendationSpots, spot.available === 0 && { color: '#EF4444' }]}>
+                        {spot.available === 0 ? 'No spots left' : `${spot.available} spots`}
+                      </Text>
+                    </View>
+
+                    <View style={styles.recommendationFooter}>
+                      <Text style={styles.recommendationPrice}>{spot.price}<Text style={styles.recommendationPriceUnit}>/hr</Text></Text>
+                      {spot.available === 0 ? (
+                        <View style={[styles.recommendationBookButton, { backgroundColor: '#9CA3AF' }]}>
+                          <Text style={styles.recommendationBookButtonText}>Booked</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.recommendationBookButton}
+                          onPress={() => {
+                            navigation.navigate('ParkingDetails', { parkingData: spot });
+                          }}
+                        >
+                          <Text style={styles.recommendationBookButtonText}>Book</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            )}
+          </View>
+          )}
         </View>
+
+        {/* List View - Overlay on map area */}
+        {viewMode === 'list' && (
+          <View style={styles.listViewOverlay}>
+            {renderListView()}
+          </View>
         )}
       </View>
 
-      {/* List View - Rendered on top when active */}
-      {viewMode === 'list' && renderListView()}
-
       {/* Parking Details Modal */}
       <Modal
-        animationType="none"
+        animationType="slide"
         transparent={true}
         visible={modalVisible}
         onRequestClose={closeModal}
@@ -965,52 +1320,92 @@ const HomePage = ({ navigation }) => {
                   </View>
                 </TouchableOpacity>
 
-                {/* Parking Image */}
-                <View style={styles.parkingImageContainer}>
-                  <View style={styles.parkingImagePlaceholder}>
-                    <MaterialIcon name="parking" size={40} color="#1A73E8" />
-                  </View>
-                  <View style={styles.availabilityBadge}>
-                    <Text style={styles.availabilityText}>{selectedParkingData.available} spots left</Text>
-                  </View>
-                </View>
-
-                {/* Parking Info */}
-                <View style={styles.parkingInfo}>
-                  <View style={styles.parkingTitleRow}>
-                    <Text style={styles.parkingName}>{selectedParkingData.name}</Text>
-                    <View style={styles.ratingContainer}>
-                      <Icon name="star" size={14} color="#F59E0B" />
-                      <Text style={styles.ratingText}>{selectedParkingData.rating}</Text>
+                <ScrollView
+                  style={styles.modalScroll}
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}
+                >
+                  {/* Parking Image */}
+                  <View style={styles.parkingImageContainer}>
+                    {Array.isArray(selectedParkingData.images) && selectedParkingData.images.length > 0 ? (
+                      selectedParkingData.images.length === 1 ? (
+                        <Image
+                          source={{ uri: selectedParkingData.images[0] }}
+                          style={styles.parkingImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <ScrollView
+                          horizontal
+                          pagingEnabled
+                          showsHorizontalScrollIndicator={false}
+                          style={styles.parkingImageScroll}
+                        >
+                          {selectedParkingData.images.map((uri, idx) => (
+                            <Image
+                              key={`${uri}-${idx}`}
+                              source={{ uri }}
+                              style={styles.parkingImage}
+                              resizeMode="cover"
+                            />
+                          ))}
+                        </ScrollView>
+                      )
+                    ) : (
+                      <View style={styles.parkingImagePlaceholder}>
+                        <MaterialIcon name="parking" size={40} color="#1A73E8" />
+                      </View>
+                    )}
+                    <View style={[styles.availabilityBadge, selectedParkingData.available === 0 && { backgroundColor: '#EF4444' }]}>
+                      <Text style={styles.availabilityText}>
+                        {selectedParkingData.available === 0 ? 'Fully Booked' : `${selectedParkingData.available} spots left`}
+                      </Text>
                     </View>
                   </View>
 
-                  <View style={styles.parkingAddressRow}>
-                    <Icon name="map-pin" size={14} color="#6B7280" />
-                    <Text style={styles.parkingAddress}>{selectedParkingData.address}</Text>
-                  </View>
+                  {/* Parking Info */}
+                  <View style={styles.parkingInfo}>
+                    <View style={styles.parkingTitleRow}>
+                      <Text style={styles.parkingName}>{selectedParkingData.name}</Text>
+                      <View style={styles.ratingContainer}>
+                        <Icon name="star" size={14} color="#F59E0B" />
+                        <Text style={styles.ratingText}>{selectedParkingData.rating}</Text>
+                      </View>
+                    </View>
 
-                  <View style={styles.parkingDetailsRow}>
-                    <TouchableOpacity style={styles.detailItem} onPress={() => openDirections(selectedParkingData)}>
-                      <Icon name="navigation" size={14} color="#1A73E8" />
-                      <Text style={styles.detailText}>{selectedParkingData.distance}</Text>
-                    </TouchableOpacity>
-                    <View style={styles.detailItem}>
-                      <MaterialIcon name="car-outline" size={16} color="#1A73E8" />
-                      <Text style={styles.detailText}>{selectedParkingData.spots} spots</Text>
+                    <View style={styles.parkingAddressRow}>
+                      <Icon name="map-pin" size={14} color="#6B7280" />
+                      <Text style={styles.parkingAddress}>{selectedParkingData.address}</Text>
                     </View>
-                    <View style={styles.detailItem}>
-                      <Icon name="clock" size={14} color="#1A73E8" />
-                      <Text style={styles.detailText}>24/7</Text>
+
+                    <View style={styles.parkingDetailsRow}>
+                      <TouchableOpacity style={styles.detailItem} onPress={() => openDirections(selectedParkingData)}>
+                        <Icon name="navigation" size={14} color="#1A73E8" />
+                        <Text style={styles.detailText}>{selectedParkingData.distance}</Text>
+                      </TouchableOpacity>
+                      <View style={styles.detailItem}>
+                        <MaterialIcon name="car-outline" size={16} color="#1A73E8" />
+                        <Text style={styles.detailText}>{selectedParkingData.spots} spots</Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Icon name="clock" size={14} color="#1A73E8" />
+                        <Text style={styles.detailText}>24/7</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
+                </ScrollView>
 
                 {/* Price and Book Button */}
                 <View style={styles.modalFooter}>
                   <View style={styles.priceContainer}>
                     <Text style={styles.priceLabel}>Price</Text>
-                    <Text style={styles.priceValue}>₹{selectedParkingData.pricePerHour}<Text style={styles.priceUnit}>/hr</Text></Text>
+                    <Text style={styles.priceValue}>
+                      {selectedParkingData.minPrice != null && selectedParkingData.maxPrice != null && selectedParkingData.minPrice !== selectedParkingData.maxPrice
+                        ? `₹${selectedParkingData.minPrice} – ₹${selectedParkingData.maxPrice}`
+                        : `₹${selectedParkingData.pricePerHour}`}
+                      <Text style={styles.priceUnit}>/hr</Text>
+                    </Text>
                   </View>
                   <View style={styles.modalButtonsRow}>
                     <TouchableOpacity
@@ -1019,15 +1414,21 @@ const HomePage = ({ navigation }) => {
                     >
                       <Icon name="navigation" size={18} color="#1A73E8" />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.bookButton}
-                      onPress={() => {
-                        closeModal();
-                        navigation.navigate('ParkingDetails', { parkingData: selectedParkingData });
-                      }}
-                    >
-                      <Text style={styles.bookButtonText}>Book Now</Text>
-                    </TouchableOpacity>
+                    {selectedParkingData.available === 0 ? (
+                      <View style={[styles.bookButton, { backgroundColor: '#9CA3AF' }]}>
+                        <Text style={styles.bookButtonText}>Booked</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.bookButton}
+                        onPress={() => {
+                          closeModal();
+                          navigation.navigate('ParkingDetails', { parkingData: selectedParkingData });
+                        }}
+                      >
+                        <Text style={styles.bookButtonText}>Book Now</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               </>
@@ -1153,7 +1554,15 @@ const HomePage = ({ navigation }) => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.applyButton}
-                onPress={() => setFilterModalVisible(false)}
+                onPress={() => {
+                  setFilterModalVisible(false);
+                  if (userLocation) {
+                    fetchSpots(userLocation.latitude, userLocation.longitude, {
+                      priceRange: selectedPriceRange,
+                      amenities: selectedAmenities,
+                    });
+                  }
+                }}
               >
                 <Text style={styles.applyButtonText}>
                   Apply ({filteredSpots.length} results)
@@ -1207,7 +1616,11 @@ const HomePage = ({ navigation }) => {
                 >
                   <View style={styles.allRecommendationsCardImage}>
                     <MaterialIcon name="parking" size={28} color="#1A73E8" />
-                    {item.available < 5 && (
+                    {item.available === 0 ? (
+                      <View style={[styles.lowAvailabilityBadgeCard, { backgroundColor: '#EF4444' }]}>
+                        <Text style={styles.lowAvailabilityTextCard}>Booked</Text>
+                      </View>
+                    ) : item.available < 5 && (
                       <View style={styles.lowAvailabilityBadgeCard}>
                         <Text style={styles.lowAvailabilityTextCard}>{item.available} left</Text>
                       </View>
@@ -1229,20 +1642,28 @@ const HomePage = ({ navigation }) => {
                       </View>
                       <View style={styles.metaItem}>
                         <MaterialIcon name={item.type === 'car' ? 'car' : item.type === 'bike' ? 'motorbike' : item.type === 'bus' ? 'bus' : 'truck'} size={12} color="#6B7280" />
-                        <Text style={styles.metaText}>{item.available} spots</Text>
+                        <Text style={[styles.metaText, item.available === 0 && { color: '#EF4444' }]}>
+                          {item.available === 0 ? 'No spots left' : `${item.available} spots`}
+                        </Text>
                       </View>
                     </View>
                     <View style={styles.allRecommendationsCardFooter}>
                       <Text style={styles.allRecommendationsCardPrice}>{item.price}<Text style={styles.parkingCardPriceUnit}>/hr</Text></Text>
-                      <TouchableOpacity
-                        style={styles.allRecommendationsBookButton}
-                        onPress={() => {
-                          setAllRecommendationsVisible(false);
-                          navigation.navigate('ParkingDetails', { parkingData: item });
-                        }}
-                      >
-                        <Text style={styles.allRecommendationsBookButtonText}>Book</Text>
-                      </TouchableOpacity>
+                      {item.available === 0 ? (
+                        <View style={[styles.allRecommendationsBookButton, { backgroundColor: '#9CA3AF' }]}>
+                          <Text style={styles.allRecommendationsBookButtonText}>Booked</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.allRecommendationsBookButton}
+                          onPress={() => {
+                            setAllRecommendationsVisible(false);
+                            navigation.navigate('ParkingDetails', { parkingData: item });
+                          }}
+                        >
+                          <Text style={styles.allRecommendationsBookButtonText}>Book</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -1271,12 +1692,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  headerPanel: {
+    backgroundColor: '#FFFFFF',
+    paddingBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 10,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
+  },
+  mapArea: {
+    flex: 1,
+  },
+  listViewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    zIndex: 2,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -1424,10 +1867,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  // List Toggle Button on Map
+  // List Toggle Button on Map. `bottom` is set inline from the measured
+  // bottom-sheet height so the button always sits just above the sheet.
   listToggleButton: {
     position: 'absolute',
-    bottom: 220,
     left: 16,
     width: 44,
     height: 44,
@@ -1460,7 +1903,7 @@ const styles = StyleSheet.create({
     paddingRight: 0,
   },
   listRecommendationCard: {
-    width: 260,
+    width: 320,
     height: 120,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -1605,6 +2048,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
+  spotsErrorText: {
+    fontSize: 13,
+    color: '#EF4444',
+    marginVertical: 12,
+    textAlign: 'center',
+  },
+
   // Empty State
   emptyState: {
     flex: 1,
@@ -1647,13 +2097,10 @@ const styles = StyleSheet.create({
   },
 
   searchSection: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    right: 16,
     flexDirection: 'row',
     gap: 10,
-    zIndex: 10,
+    paddingHorizontal: 16,
+    marginTop: 4,
   },
   searchBar: {
     flex: 1,
@@ -1689,11 +2136,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   categorySection: {
-    position: 'absolute',
-    top: 76,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    marginTop: 10,
   },
   categoryScroll: {
     flexDirection: 'row',
@@ -1726,11 +2169,7 @@ const styles = StyleSheet.create({
   },
   // Always mounted map container - prevents black flash on Android
   mapContainerAlwaysMounted: {
-    position: 'absolute',
-    top: 70,
-    left: 0,
-    right: 0,
-    bottom: 55,
+    flex: 1,
     backgroundColor: '#FFFFFF',
     zIndex: 1,
   },
@@ -1748,9 +2187,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  // My Location Button. `bottom` is set inline from the measured
+  // bottom-sheet height so the button always sits just above the sheet.
   myLocationButton: {
     position: 'absolute',
-    bottom: 220,
     right: 16,
     width: 44,
     height: 44,
@@ -1807,7 +2247,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   recommendationCard: {
-    width: 260,
+    width: 320,
     height: 120,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -1976,9 +2416,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   pinCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#1A73E8',
@@ -1998,6 +2438,29 @@ const styles = StyleSheet.create({
   },
   pinPriceActive: {
     color: '#FFFFFF',
+  },
+  // Range price pin — wider pill/box shape
+  pinBox: {
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1A73E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    zIndex: 2,
+  },
+  pinBoxActive: {
+    backgroundColor: '#1A73E8',
+    borderColor: '#1A73E8',
+  },
+  pinBoxPrice: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#1A73E8',
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
   pinTail: {
     width: 0,
@@ -2026,7 +2489,14 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingBottom: 30,
-    maxHeight: '70%',
+    maxHeight: '85%',
+  },
+  modalScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  modalScrollContent: {
+    paddingBottom: 12,
   },
   modalHeader: {
     alignItems: 'center',
@@ -2056,14 +2526,27 @@ const styles = StyleSheet.create({
   parkingImageContainer: {
     position: 'relative',
     marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   parkingImagePlaceholder: {
     width: '100%',
-    height: 150,
+    height: 180,
     backgroundColor: '#F3F4F6',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  parkingImage: {
+    // Image takes full modal width minus the modal's 20px horizontal padding
+    width: SCREEN_WIDTH - 40,
+    height: 180,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+  },
+  parkingImageScroll: {
+    width: SCREEN_WIDTH - 40,
+    height: 180,
   },
   availabilityBadge: {
     position: 'absolute',

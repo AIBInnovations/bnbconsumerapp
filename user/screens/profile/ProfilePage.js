@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,37 +10,18 @@ import {
   Switch,
   Animated,
   StatusBar,
-  Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppAlert } from '../../components/AppAlert';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useAuth } from '../../context/AuthContext';
+import * as vehicleService from '../../services/vehicleService';
+import * as userService from '../../services/userService';
 
-// Sample user data
-const initialUserData = {
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'johndoe@email.com',
-  phone: '+1 (555) 123-4567',
-  profileImage: null,
-};
-
-// Sample vehicles data
-const initialVehicles = [
-  {
-    id: '1',
-    type: 'Sedan',
-    make: 'Toyota',
-    model: 'Camry',
-    year: '2022',
-    color: 'Silver',
-    size: 'Mid-size',
-    registrationNumber: 'ABC 1234',
-    isDefault: true,
-  },
-];
-
-// Sample payment methods
+// Payment methods — stays mock (no backend support)
 const initialPaymentMethods = [
   {
     id: '1',
@@ -58,60 +39,92 @@ const initialPaymentMethods = [
   },
 ];
 
-// Notification settings
-const initialNotifications = {
-  bookingReminders: true,
-  paymentConfirmations: true,
-  promotions: false,
-  parkingAlerts: true,
-  expiryReminders: true,
-  newsletter: false,
+// Maps backend vehicleType → UI display label
+const typeDisplayMap = {
+  car: 'Car',
+  suv: 'SUV',
+  van: 'Van',
+  motorcycle: 'Motorcycle',
+  truck: 'Truck',
+};
+
+// Maps UI label → backend vehicleType
+const vehicleTypeMap = {
+  Car: 'car',
+  SUV: 'suv',
+  Van: 'van',
+  Motorcycle: 'motorcycle',
+  Truck: 'truck',
+};
+
+// Maps UI label → backend vehicleSize
+const vehicleSizeMap = {
+  Car: 'medium',
+  SUV: 'large',
+  Van: 'large',
+  Motorcycle: 'small',
+  Truck: 'extra_large',
 };
 
 const ProfilePage = ({ navigation }) => {
-  // State management
-  const [userData, setUserData] = useState(initialUserData);
-  const [vehicles, setVehicles] = useState(initialVehicles);
-  const [paymentMethods, setPaymentMethods] = useState(initialPaymentMethods);
-  const [notifications, setNotifications] = useState(initialNotifications);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState(initialUserData);
-  const [showVehicleModal, setShowVehicleModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const auth = useAuth();
+  const user = auth.user;
 
-  // Animation refs
+  // Profile state — seeded from real auth.user
+  const [fullName, setFullName] = useState(user?.legalName || '');
+  const [editedName, setEditedName] = useState(user?.legalName || '');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Vehicles
+  const [vehicles, setVehicles] = useState([]);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
+
+  // Vehicle modal (controlled inputs)
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [vehicleForm, setVehicleForm] = useState({
+    make: '', model: '', year: '', type: 'Car', registrationNumber: '',
+  });
+  const [vehicleSaving, setVehicleSaving] = useState(false);
+
+  // Notifications — 2 backend-persisted, 2 local-only
+  const [notifBooking, setNotifBooking] = useState(user?.notificationBooking ?? true);
+  const [notifPromotion, setNotifPromotion] = useState(user?.notificationPromotion ?? false);
+  const [notifParkingAlerts, setNotifParkingAlerts] = useState(true);
+  const [notifExpiryReminders, setNotifExpiryReminders] = useState(true);
+
+  // TODO: fetch payment methods from API; mock removed
+  const [paymentMethods, setPaymentMethods] = useState(/* initialPaymentMethods */ []);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // Success toast
+  const [showSuccess, setShowSuccess] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Calculate profile completion
+  // Load vehicles on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    setIsLoadingVehicles(true);
+    vehicleService.getUserVehicles(user.id)
+      .then(res => setVehicles(res.vehicles || []))
+      .catch(() => setVehicles([]))
+      .finally(() => setIsLoadingVehicles(false));
+  }, [user?.id]);
+
+  // Calculate profile completion using real data
   const calculateCompletion = () => {
     let completed = 0;
-    const total = 6;
-
-    if (userData.firstName && userData.lastName) completed++;
-    if (userData.email) completed++;
-    if (userData.phone) completed++;
-    if (userData.profileImage) completed++;
+    if (fullName) completed++;
+    if (user?.email) completed++;
+    if (user?.phone) completed++;
+    if (user?.profilePictureUrl) completed++;
     if (vehicles.length > 0) completed++;
     if (paymentMethods.length > 0) completed++;
-
-    return Math.round((completed / total) * 100);
+    return Math.round((completed / 6) * 100);
   };
 
-  // Handle save profile
-  const handleSaveProfile = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setUserData(editedData);
-      setIsEditing(false);
-      setIsSaving(false);
-      showSuccessMessage();
-    }, 1000);
-  };
-
-  // Show success message
+  // Show success toast
   const showSuccessMessage = () => {
     setShowSuccess(true);
     Animated.sequence([
@@ -129,17 +142,93 @@ const ProfilePage = ({ navigation }) => {
     ]).start(() => setShowSuccess(false));
   };
 
-  // Handle notification toggle
-  const toggleNotification = (key) => {
-    setNotifications(prev => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  // Save profile name to backend
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      const response = await userService.updateProfile({ legalName: editedName.trim() });
+      setFullName(editedName.trim());
+      auth.updateUser(response.user);
+      setIsEditing(false);
+      showSuccessMessage();
+    } catch {
+      AppAlert.alert('Error', 'Could not save profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // Handle remove vehicle
+  // Notification toggles — backend-persisted
+  const handleToggleBooking = async (value) => {
+    setNotifBooking(value);
+    try {
+      await userService.updateProfile({ notificationBooking: value });
+    } catch { /* silent — local state already reflects toggle */ }
+  };
+
+  const handleTogglePromotion = async (value) => {
+    setNotifPromotion(value);
+    try {
+      await userService.updateProfile({ notificationPromotion: value });
+    } catch { /* silent */ }
+  };
+
+  // Open vehicle modal for adding
+  const openAddVehicle = () => {
+    setVehicleForm({ make: '', model: '', year: '', type: 'Car', registrationNumber: '' });
+    setEditingVehicle(null);
+    setShowVehicleModal(true);
+  };
+
+  // Open vehicle modal for editing
+  const openEditVehicle = (v) => {
+    setVehicleForm({
+      make: v.make || '',
+      model: v.model || '',
+      year: v.vehicleYear ? String(v.vehicleYear) : '',
+      type: typeDisplayMap[v.vehicleType] || 'Car',
+      registrationNumber: v.registrationNumber || '',
+    });
+    setEditingVehicle(v);
+    setShowVehicleModal(true);
+  };
+
+  // Save (add or update) vehicle
+  const handleSaveVehicle = async () => {
+    const { make, model, type, registrationNumber } = vehicleForm;
+    if (!make || !model || !registrationNumber) {
+      AppAlert.alert('Missing fields', 'Please fill in make, model, and registration number.');
+      return;
+    }
+    setVehicleSaving(true);
+    try {
+      const payload = {
+        make,
+        model,
+        vehicleType: vehicleTypeMap[type],
+        vehicleSize: vehicleSizeMap[type],
+        licensePlate: registrationNumber.trim().toUpperCase(),
+        vehicleYear: vehicleForm.year ? parseInt(vehicleForm.year, 10) : undefined,
+      };
+      if (editingVehicle) {
+        await vehicleService.updateVehicle(editingVehicle.id, payload);
+      } else {
+        await vehicleService.addVehicle(user.id, payload);
+      }
+      const res = await vehicleService.getUserVehicles(user.id);
+      setVehicles(res.vehicles || []);
+      setShowVehicleModal(false);
+      showSuccessMessage();
+    } catch (err) {
+      AppAlert.alert('Error', err?.message || 'Could not save vehicle.');
+    } finally {
+      setVehicleSaving(false);
+    }
+  };
+
+  // Delete vehicle
   const handleRemoveVehicle = (vehicleId) => {
-    Alert.alert(
+    AppAlert.alert(
       'Remove Vehicle',
       'Are you sure you want to remove this vehicle?',
       [
@@ -147,17 +236,35 @@ const ProfilePage = ({ navigation }) => {
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => {
-            setVehicles(vehicles.filter(v => v.id !== vehicleId));
+          onPress: async () => {
+            try {
+              await vehicleService.deleteVehicle(vehicleId);
+              setVehicles(prev => prev.filter(v => v.id !== vehicleId));
+            } catch {
+              AppAlert.alert('Error', 'Could not remove vehicle.');
+            }
           },
         },
       ]
     );
   };
 
-  // Handle remove payment method
+  // Set vehicle as default
+  const handleSetDefault = async () => {
+    if (!editingVehicle) return;
+    try {
+      await vehicleService.setDefaultVehicle(editingVehicle.id);
+      const res = await vehicleService.getUserVehicles(user.id);
+      setVehicles(res.vehicles || []);
+      setShowVehicleModal(false);
+    } catch {
+      AppAlert.alert('Error', 'Could not set default vehicle.');
+    }
+  };
+
+  // Remove payment method (local only)
   const handleRemovePayment = (paymentId) => {
-    Alert.alert(
+    AppAlert.alert(
       'Remove Payment Method',
       'Are you sure you want to remove this payment method?',
       [
@@ -173,9 +280,9 @@ const ProfilePage = ({ navigation }) => {
     );
   };
 
-  // Handle logout
+  // Logout via auth context — RootNavigator auto-switches to auth stack
   const handleLogout = () => {
-    Alert.alert(
+    AppAlert.alert(
       'Log Out',
       'Are you sure you want to log out?',
       [
@@ -183,12 +290,7 @@ const ProfilePage = ({ navigation }) => {
         {
           text: 'Log Out',
           style: 'destructive',
-          onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'SignIn' }],
-            });
-          },
+          onPress: () => auth.signOut(),
         },
       ]
     );
@@ -243,7 +345,7 @@ const ProfilePage = ({ navigation }) => {
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => {
-              setEditedData(userData);
+              setEditedName(fullName);
               setIsEditing(true);
             }}
           >
@@ -262,66 +364,50 @@ const ProfilePage = ({ navigation }) => {
 
       {/* Profile Picture */}
       <View style={styles.profilePictureContainer}>
-        <TouchableOpacity style={styles.profilePicture}>
-          {userData.profileImage ? (
-            <Image source={{ uri: userData.profileImage }} style={styles.profileImage} />
+        <View style={styles.profilePicture}>
+          {user?.profileImage ? (
+            <Image
+              source={{ uri: user.profileImage }}
+              style={styles.profilePictureImage}
+            />
           ) : (
             <Icon name="user" size={48} color="#1A73E8" />
           )}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.changePictureButton}>
-          <Icon name="camera" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.changePictureText}>Tap to change photo</Text>
+        </View>
       </View>
 
       {/* Personal Info Fields */}
       <View style={styles.fieldsContainer}>
         {isEditing ? (
           <>
-            <View style={styles.inputRow}>
-              <View style={styles.inputHalf}>
-                <Text style={styles.inputLabel}>First Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editedData.firstName}
-                  onChangeText={(text) => setEditedData({ ...editedData, firstName: text })}
-                  placeholder="First Name"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-              <View style={styles.inputHalf}>
-                <Text style={styles.inputLabel}>Last Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editedData.lastName}
-                  onChangeText={(text) => setEditedData({ ...editedData, lastName: text })}
-                  placeholder="Last Name"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                style={styles.input}
+                value={editedName}
+                onChangeText={setEditedName}
+                placeholder="Full Name"
+                placeholderTextColor="#9CA3AF"
+              />
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email</Text>
               <TextInput
-                style={styles.input}
-                value={editedData.email}
-                onChangeText={(text) => setEditedData({ ...editedData, email: text })}
-                placeholder="Email"
+                style={[styles.input, styles.inputReadOnly]}
+                value={user?.email || ''}
+                editable={false}
+                placeholder="—"
                 placeholderTextColor="#9CA3AF"
-                keyboardType="email-address"
-                autoCapitalize="none"
               />
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Phone Number</Text>
               <TextInput
-                style={styles.input}
-                value={editedData.phone}
-                onChangeText={(text) => setEditedData({ ...editedData, phone: text })}
-                placeholder="Phone Number"
+                style={[styles.input, styles.inputReadOnly]}
+                value={user?.phone ? `+91 ${user.phone}` : ''}
+                editable={false}
+                placeholder="—"
                 placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
               />
             </View>
             <TouchableOpacity
@@ -342,7 +428,7 @@ const ProfilePage = ({ navigation }) => {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Full Name</Text>
-                <Text style={styles.infoValue}>{userData.firstName} {userData.lastName}</Text>
+                <Text style={styles.infoValue}>{fullName || '—'}</Text>
               </View>
             </View>
             <View style={styles.infoRow}>
@@ -351,7 +437,7 @@ const ProfilePage = ({ navigation }) => {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{userData.email}</Text>
+                <Text style={styles.infoValue}>{user?.email || '—'}</Text>
               </View>
             </View>
             <View style={styles.infoRow}>
@@ -360,7 +446,9 @@ const ProfilePage = ({ navigation }) => {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Phone Number</Text>
-                <Text style={styles.infoValue}>{userData.phone}</Text>
+                <Text style={styles.infoValue}>
+                  {user?.phone ? `+91 ${user.phone}` : '—'}
+                </Text>
               </View>
             </View>
           </>
@@ -376,17 +464,16 @@ const ProfilePage = ({ navigation }) => {
         <Text style={styles.sectionTitle}>My Vehicles</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => {
-            setEditingVehicle(null);
-            setShowVehicleModal(true);
-          }}
+          onPress={openAddVehicle}
         >
           <Icon name="plus" size={16} color="#1A73E8" />
           <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
 
-      {vehicles.length === 0 ? (
+      {isLoadingVehicles ? (
+        <ActivityIndicator size="small" color="#1A73E8" style={{ paddingVertical: 24 }} />
+      ) : vehicles.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconContainer}>
             <Icon name="truck" size={32} color="#9CA3AF" />
@@ -397,7 +484,7 @@ const ProfilePage = ({ navigation }) => {
           </Text>
           <TouchableOpacity
             style={styles.emptyButton}
-            onPress={() => setShowVehicleModal(true)}
+            onPress={openAddVehicle}
           >
             <Icon name="plus" size={18} color="#FFFFFF" />
             <Text style={styles.emptyButtonText}>Add Vehicle</Text>
@@ -412,7 +499,7 @@ const ProfilePage = ({ navigation }) => {
             <View style={styles.vehicleInfo}>
               <View style={styles.vehicleHeader}>
                 <Text style={styles.vehicleName}>
-                  {vehicle.make} {vehicle.model}
+                  {vehicle.registrationNumber || '—'}
                 </Text>
                 {vehicle.isDefault && (
                   <View style={styles.defaultBadge}>
@@ -421,19 +508,14 @@ const ProfilePage = ({ navigation }) => {
                 )}
               </View>
               <Text style={styles.vehicleDetails}>
-                {vehicle.type} • {vehicle.color} • {vehicle.year}
-              </Text>
-              <Text style={styles.vehicleRegistration}>
-                {vehicle.registrationNumber}
+                {typeDisplayMap[vehicle.vehicleType] || vehicle.vehicleType}
+                {vehicle.vehicleYear ? ` • ${vehicle.vehicleYear}` : ''}
               </Text>
             </View>
             <View style={styles.vehicleActions}>
               <TouchableOpacity
                 style={styles.vehicleActionButton}
-                onPress={() => {
-                  setEditingVehicle(vehicle);
-                  setShowVehicleModal(true);
-                }}
+                onPress={() => openEditVehicle(vehicle)}
               >
                 <Icon name="edit-2" size={16} color="#6B7280" />
               </TouchableOpacity>
@@ -538,10 +620,10 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.notificationText}>Booking Reminders</Text>
           </View>
           <Switch
-            value={notifications.bookingReminders}
-            onValueChange={() => toggleNotification('bookingReminders')}
+            value={notifBooking}
+            onValueChange={handleToggleBooking}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifications.bookingReminders ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifBooking ? '#1A73E8' : '#9CA3AF'}
           />
         </View>
 
@@ -551,10 +633,10 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.notificationText}>Payment Confirmations</Text>
           </View>
           <Switch
-            value={notifications.paymentConfirmations}
-            onValueChange={() => toggleNotification('paymentConfirmations')}
+            value={notifBooking}
+            onValueChange={handleToggleBooking}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifications.paymentConfirmations ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifBooking ? '#1A73E8' : '#9CA3AF'}
           />
         </View>
 
@@ -564,10 +646,10 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.notificationText}>Parking Alerts</Text>
           </View>
           <Switch
-            value={notifications.parkingAlerts}
-            onValueChange={() => toggleNotification('parkingAlerts')}
+            value={notifParkingAlerts}
+            onValueChange={setNotifParkingAlerts}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifications.parkingAlerts ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifParkingAlerts ? '#1A73E8' : '#9CA3AF'}
           />
         </View>
 
@@ -577,10 +659,10 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.notificationText}>Expiry Reminders</Text>
           </View>
           <Switch
-            value={notifications.expiryReminders}
-            onValueChange={() => toggleNotification('expiryReminders')}
+            value={notifExpiryReminders}
+            onValueChange={setNotifExpiryReminders}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifications.expiryReminders ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifExpiryReminders ? '#1A73E8' : '#9CA3AF'}
           />
         </View>
 
@@ -590,10 +672,10 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.notificationText}>Promotions & Offers</Text>
           </View>
           <Switch
-            value={notifications.promotions}
-            onValueChange={() => toggleNotification('promotions')}
+            value={notifPromotion}
+            onValueChange={handleTogglePromotion}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifications.promotions ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifPromotion ? '#1A73E8' : '#9CA3AF'}
           />
         </View>
 
@@ -603,10 +685,10 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.notificationText}>Newsletter</Text>
           </View>
           <Switch
-            value={notifications.newsletter}
-            onValueChange={() => toggleNotification('newsletter')}
+            value={notifPromotion}
+            onValueChange={handleTogglePromotion}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifications.newsletter ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifPromotion ? '#1A73E8' : '#9CA3AF'}
           />
         </View>
       </View>
@@ -635,7 +717,7 @@ const ProfilePage = ({ navigation }) => {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.quickLinkItem}>
-        <View style={[styles.quickLinkIcon, { backgroundColor: '#059669 15' }]}>
+        <View style={[styles.quickLinkIcon, { backgroundColor: '#05966915' }]}>
           <Icon name="shield" size={20} color="#059669" />
         </View>
         <View style={styles.quickLinkContent}>
@@ -715,7 +797,8 @@ const ProfilePage = ({ navigation }) => {
                 style={styles.input}
                 placeholder="e.g., Toyota"
                 placeholderTextColor="#9CA3AF"
-                defaultValue={editingVehicle?.make}
+                value={vehicleForm.make}
+                onChangeText={(text) => setVehicleForm(f => ({ ...f, make: text }))}
               />
             </View>
 
@@ -725,46 +808,38 @@ const ProfilePage = ({ navigation }) => {
                 style={styles.input}
                 placeholder="e.g., Camry"
                 placeholderTextColor="#9CA3AF"
-                defaultValue={editingVehicle?.model}
+                value={vehicleForm.model}
+                onChangeText={(text) => setVehicleForm(f => ({ ...f, model: text }))}
               />
             </View>
 
-            <View style={styles.inputRow}>
-              <View style={styles.inputHalf}>
-                <Text style={styles.inputLabel}>Year</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="2022"
-                  placeholderTextColor="#9CA3AF"
-                  keyboardType="numeric"
-                  defaultValue={editingVehicle?.year}
-                />
-              </View>
-              <View style={styles.inputHalf}>
-                <Text style={styles.inputLabel}>Color</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Silver"
-                  placeholderTextColor="#9CA3AF"
-                  defaultValue={editingVehicle?.color}
-                />
-              </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Year</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="2022"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
+                value={vehicleForm.year}
+                onChangeText={(text) => setVehicleForm(f => ({ ...f, year: text }))}
+              />
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Vehicle Type</Text>
               <View style={styles.vehicleTypeContainer}>
-                {['Sedan', 'SUV', 'Truck', 'Van', 'Motorcycle'].map((type) => (
+                {['Car', 'SUV', 'Truck', 'Van', 'Motorcycle'].map((type) => (
                   <TouchableOpacity
                     key={type}
                     style={[
                       styles.vehicleTypeButton,
-                      editingVehicle?.type === type && styles.vehicleTypeButtonActive,
+                      vehicleForm.type === type && styles.vehicleTypeButtonActive,
                     ]}
+                    onPress={() => setVehicleForm(f => ({ ...f, type }))}
                   >
                     <Text style={[
                       styles.vehicleTypeText,
-                      editingVehicle?.type === type && styles.vehicleTypeTextActive,
+                      vehicleForm.type === type && styles.vehicleTypeTextActive,
                     ]}>{type}</Text>
                   </TouchableOpacity>
                 ))}
@@ -778,12 +853,21 @@ const ProfilePage = ({ navigation }) => {
                 placeholder="ABC 1234"
                 placeholderTextColor="#9CA3AF"
                 autoCapitalize="characters"
-                defaultValue={editingVehicle?.registrationNumber}
+                value={vehicleForm.registrationNumber}
+                onChangeText={(text) => setVehicleForm(f => ({ ...f, registrationNumber: text }))}
               />
             </View>
           </ScrollView>
 
           <View style={styles.modalFooter}>
+            {editingVehicle && !editingVehicle.isDefault && (
+              <TouchableOpacity
+                style={styles.modalDefaultButton}
+                onPress={handleSetDefault}
+              >
+                <Text style={styles.modalDefaultText}>Set Default</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.modalCancelButton}
               onPress={() => setShowVehicleModal(false)}
@@ -791,12 +875,17 @@ const ProfilePage = ({ navigation }) => {
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.modalSaveButton}
-              onPress={() => setShowVehicleModal(false)}
+              style={[styles.modalSaveButton, vehicleSaving && { opacity: 0.7 }]}
+              onPress={handleSaveVehicle}
+              disabled={vehicleSaving}
             >
-              <Text style={styles.modalSaveText}>
-                {editingVehicle ? 'Save Changes' : 'Add Vehicle'}
-              </Text>
+              {vehicleSaving ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.modalSaveText}>
+                  {editingVehicle ? 'Save Changes' : 'Add Vehicle'}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -910,7 +999,7 @@ const ProfilePage = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {renderHeader()}
@@ -923,7 +1012,7 @@ const ProfilePage = ({ navigation }) => {
         {renderProfileCompletion()}
         {renderProfileSection()}
         {renderVehiclesSection()}
-        {renderPaymentSection()}
+        {/* renderPaymentSection() */}
         {renderNotificationsSection()}
         {renderQuickLinks()}
         {renderLogout()}
@@ -1093,6 +1182,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBF5FF',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  profilePictureImage: {
+    width: '100%',
+    height: '100%',
   },
   profileImage: {
     width: 100,
@@ -1181,6 +1275,9 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  inputReadOnly: {
+    color: '#9CA3AF',
   },
   saveButton: {
     backgroundColor: '#1A73E8',
@@ -1488,6 +1585,18 @@ const styles = StyleSheet.create({
     borderTopColor: '#F3F4F6',
     gap: 12,
   },
+  modalDefaultButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+  },
+  modalDefaultText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#059669',
+  },
   modalCancelButton: {
     flex: 1,
     paddingVertical: 14,
@@ -1506,6 +1615,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#1A73E8',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalSaveText: {
     fontSize: 16,

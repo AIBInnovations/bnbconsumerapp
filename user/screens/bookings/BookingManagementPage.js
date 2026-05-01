@@ -1,4 +1,5 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -10,216 +11,180 @@ import {
   TextInput,
   ScrollView,
   Platform,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppAlert } from '../../components/AppAlert';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useAuth } from '../../context/AuthContext';
+import * as bookingService from '../../services/bookingService';
 
-// Sample bookings data
-const sampleBookingsData = {
-  active: [
-    {
-      id: 'BK001',
-      parkingName: 'Central Mall Parking',
-      address: '123 Main Street, Downtown',
-      date: 'Today',
-      fullDate: '2024-12-10',
-      startTime: '2:00 PM',
-      endTime: '5:00 PM',
-      spot: 'A-12',
-      price: 15.00,
-      status: 'active',
-      spaceType: 'Covered',
-      amenities: ['CCTV', 'Security', '24/7'],
-      vehicleType: 'car',
-      paymentMethod: 'Visa •••• 4242',
-      ownerName: 'ParkSmart LLC',
-      ownerPhone: '+1 555-0123',
-    },
-  ],
-  upcoming: [
-    {
-      id: 'BK002',
-      parkingName: 'Downtown Garage',
-      address: '456 Oak Avenue, City Center',
-      date: 'Tomorrow',
-      fullDate: '2024-12-11',
-      startTime: '10:00 AM',
-      endTime: '2:00 PM',
-      spot: 'B-05',
-      price: 16.00,
-      status: 'confirmed',
-      spaceType: 'Open',
-      amenities: ['CCTV', 'EV Charging'],
-      vehicleType: 'car',
-      paymentMethod: 'Visa •••• 4242',
-      ownerName: 'City Parking Co.',
-      ownerPhone: '+1 555-0456',
-    },
-    {
-      id: 'BK003',
-      parkingName: 'Airport Parking',
-      address: '789 Airport Road, Terminal 1',
-      date: 'Dec 15, 2024',
-      fullDate: '2024-12-15',
-      startTime: '6:00 AM',
-      endTime: '6:00 PM',
-      spot: 'C-22',
-      price: 96.00,
-      status: 'confirmed',
-      spaceType: 'Covered',
-      amenities: ['CCTV', 'Security', 'Shuttle'],
-      vehicleType: 'car',
-      paymentMethod: 'PayPal',
-      ownerName: 'Airport Services',
-      ownerPhone: '+1 555-0789',
-    },
-  ],
-  past: [
-    {
-      id: 'BK004',
-      parkingName: 'Beach Parking Lot',
-      address: '321 Beach Drive, Oceanside',
-      date: 'Dec 8, 2024',
-      fullDate: '2024-12-08',
-      startTime: '9:00 AM',
-      endTime: '12:00 PM',
-      spot: 'D-08',
-      price: 9.00,
-      status: 'completed',
-      spaceType: 'Open',
-      amenities: ['Security'],
-      vehicleType: 'car',
-      paymentMethod: 'Visa •••• 4242',
-      ownerName: 'Beach Parking Inc.',
-      ownerPhone: '+1 555-0321',
-      rating: null,
-    },
-    {
-      id: 'BK005',
-      parkingName: 'Stadium Parking',
-      address: '654 Sports Lane, Stadium District',
-      date: 'Dec 5, 2024',
-      fullDate: '2024-12-05',
-      startTime: '5:00 PM',
-      endTime: '11:00 PM',
-      spot: 'E-45',
-      price: 60.00,
-      status: 'completed',
-      spaceType: 'Open',
-      amenities: ['CCTV', 'Security'],
-      vehicleType: 'car',
-      paymentMethod: 'Google Pay',
-      ownerName: 'Stadium Services',
-      ownerPhone: '+1 555-0654',
-      rating: 5,
-    },
-    {
-      id: 'BK006',
-      parkingName: 'Shopping Center',
-      address: '999 Commerce Blvd',
-      date: 'Dec 1, 2024',
-      fullDate: '2024-12-01',
-      startTime: '1:00 PM',
-      endTime: '4:00 PM',
-      spot: 'F-12',
-      price: 12.00,
-      status: 'cancelled',
-      spaceType: 'Covered',
-      amenities: ['CCTV'],
-      vehicleType: 'car',
-      paymentMethod: 'Visa •••• 4242',
-      ownerName: 'Mall Parking',
-      ownerPhone: '+1 555-0999',
-    },
-  ],
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const formatDate = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  if (d.toDateString() === today.toDateString()) return 'Today';
+  if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+const formatTime = (iso) => {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleTimeString('en-IN', {
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  });
+};
+
+const getSpaceName = (booking) => {
+  const s = booking.spaceId;
+  if (s && typeof s === 'object') {
+    // Populated: spaceId.propertyId.propertyName (nested populate)
+    const prop = s.propertyId;
+    if (prop && typeof prop === 'object') return prop.propertyName || prop.name || 'Parking Space';
+    return s.title || s.name || 'Parking Space';
+  }
+  return 'Parking Space';
+};
+
+const getSpaceAddress = (booking) => {
+  const s = booking.spaceId;
+  if (s && typeof s === 'object') {
+    const prop = s.propertyId;
+    if (prop && typeof prop === 'object') {
+      const parts = [prop.address, prop.city, prop.state].filter(Boolean);
+      return parts.join(', ') || '—';
+    }
+    return s.address || '—';
+  }
+  return '—';
+};
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 const BookingManagementPage = ({ navigation }) => {
-  const [selectedTab, setSelectedTab] = useState('active');
-  const [bookingsData, setBookingsData] = useState(sampleBookingsData);
+  const auth = useAuth();
+  const user = auth.user;
+
+  // Data
+  const [bookings, setBookings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // UI
+  const [selectedTab, setSelectedTab] = useState('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  // Modals
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // Cancel
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  // Extend
   const [showExtendModal, setShowExtendModal] = useState(false);
+  const [extendHours, setExtendHours] = useState(1);
+  const [isExtending, setIsExtending] = useState(false);
+
+  // Review (local only — no review API in current scope)
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
-  const [extendHours, setExtendHours] = useState(1);
-  const [filterStatus, setFilterStatus] = useState('all');
+  // local review ratings stored per booking id
+  const [localRatings, setLocalRatings] = useState({});
 
   const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
 
   const tabs = [
-    { id: 'active', label: 'Active', icon: 'play-circle' },
     { id: 'upcoming', label: 'Upcoming', icon: 'clock' },
+    { id: 'active', label: 'Active', icon: 'play-circle' },
     { id: 'past', label: 'Past', icon: 'check-circle' },
   ];
 
-  // Filter bookings based on search and status
-  const filteredBookings = useMemo(() => {
-    let data = bookingsData[selectedTab] || [];
+  // ─── Fetch ─────────────────────────────────────────────────────────────────
 
+  const fetchBookings = useCallback(async (refreshing = false) => {
+    if (!user?.id) return;
+    if (refreshing) setIsRefreshing(true);
+    else setIsLoading(true);
+    try {
+      const res = await bookingService.getUserBookings(user.id, { limit: 100 });
+      // Controller returns the array directly as data (not { bookings: [] })
+      setBookings(Array.isArray(res) ? res : (res.bookings || []));
+    } catch {
+      setBookings([]);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [user?.id]);
+
+  useFocusEffect(useCallback(() => { fetchBookings(); }, [fetchBookings]));
+
+  // ─── Derived data ──────────────────────────────────────────────────────────
+
+  const activeBookings = useMemo(
+    () => bookings.filter(b => b.status === 'active'),
+    [bookings]
+  );
+  const upcomingBookings = useMemo(
+    () => bookings.filter(b => ['pending', 'confirmed'].includes(b.status)),
+    [bookings]
+  );
+  const pastBookings = useMemo(
+    () => bookings.filter(b => ['completed', 'cancelled', 'rejected', 'no_show'].includes(b.status)),
+    [bookings]
+  );
+
+  const currentTabBookings = useMemo(() => {
+    switch (selectedTab) {
+      case 'active': return activeBookings;
+      case 'upcoming': return upcomingBookings;
+      case 'past': return pastBookings;
+      default: return [];
+    }
+  }, [selectedTab, activeBookings, upcomingBookings, pastBookings]);
+
+  const filteredBookings = useMemo(() => {
+    let data = currentTabBookings;
     if (searchQuery) {
-      data = data.filter(
-        booking =>
-          booking.parkingName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          booking.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          booking.id.toLowerCase().includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase();
+      data = data.filter(b =>
+        getSpaceName(b).toLowerCase().includes(q) ||
+        getSpaceAddress(b).toLowerCase().includes(q) ||
+        (b.bookingNumber || '').toLowerCase().includes(q)
       );
     }
-
     if (filterStatus !== 'all') {
-      data = data.filter(booking => booking.status === filterStatus);
+      data = data.filter(b => b.status === filterStatus);
     }
-
     return data;
-  }, [bookingsData, selectedTab, searchQuery, filterStatus]);
+  }, [currentTabBookings, searchQuery, filterStatus]);
+
+  const tabCount = (tabId) => {
+    if (tabId === 'active') return activeBookings.length;
+    if (tabId === 'upcoming') return upcomingBookings.length;
+    return pastBookings.length;
+  };
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────
 
   const handleTabChange = (tabId) => {
     const tabIndex = tabs.findIndex(t => t.id === tabId);
-    Animated.spring(tabIndicatorAnim, {
-      toValue: tabIndex,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(tabIndicatorAnim, { toValue: tabIndex, useNativeDriver: true }).start();
     setSelectedTab(tabId);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active':
-        return '#10B981';
-      case 'confirmed':
-        return '#3B82F6';
-      case 'pending':
-        return '#F59E0B';
-      case 'completed':
-        return '#6B7280';
-      case 'cancelled':
-        return '#EF4444';
-      default:
-        return '#6B7280';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'active':
-        return 'In Progress';
-      case 'confirmed':
-        return 'Confirmed';
-      case 'pending':
-        return 'Pending';
-      case 'completed':
-        return 'Completed';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return status;
-    }
+    setFilterStatus('all');
   };
 
   const handleViewDetails = (booking) => {
@@ -227,209 +192,232 @@ const BookingManagementPage = ({ navigation }) => {
     setShowDetailsModal(true);
   };
 
-  const handleCancelBooking = () => {
+  const handleCancelBooking = async () => {
     if (!selectedBooking) return;
-
-    const updatedBookings = { ...bookingsData };
-    const tabKey = selectedTab;
-    updatedBookings[tabKey] = updatedBookings[tabKey].map(b =>
-      b.id === selectedBooking.id ? { ...b, status: 'cancelled' } : b
-    );
-    setBookingsData(updatedBookings);
-    setShowCancelModal(false);
-    setShowDetailsModal(false);
-    setSelectedBooking(null);
+    setIsCancelling(true);
+    try {
+      await bookingService.cancelBooking(selectedBooking.id, cancelReason.trim() || undefined);
+      setBookings(prev =>
+        prev.map(b => b.id === selectedBooking.id ? { ...b, status: 'cancelled' } : b)
+      );
+      setShowCancelModal(false);
+      setShowDetailsModal(false);
+      setSelectedBooking(null);
+      setCancelReason('');
+    } catch (err) {
+      AppAlert.alert('Error', err?.message || 'Could not cancel booking. Please try again.');
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
-  const handleExtendBooking = () => {
+  const handleExtendBooking = async () => {
     if (!selectedBooking) return;
-
-    const additionalCost = (selectedBooking.price / 3) * extendHours;
-    const updatedBookings = { ...bookingsData };
-    updatedBookings[selectedTab] = updatedBookings[selectedTab].map(b =>
-      b.id === selectedBooking.id
-        ? { ...b, price: b.price + additionalCost, endTime: 'Extended' }
-        : b
-    );
-    setBookingsData(updatedBookings);
-    setShowExtendModal(false);
-    setExtendHours(1);
+    setIsExtending(true);
+    try {
+      const res = await bookingService.extendBooking(selectedBooking.id, extendHours);
+      // Update the booking in local state with new end time / total
+      const updated = res.booking || res;
+      setBookings(prev => prev.map(b => b.id === selectedBooking.id ? { ...b, ...updated } : b));
+      setShowExtendModal(false);
+      setExtendHours(1);
+    } catch (err) {
+      AppAlert.alert('Error', err?.message || 'Could not extend booking. Please try again.');
+    } finally {
+      setIsExtending(false);
+    }
   };
 
   const handleSubmitReview = () => {
     if (!selectedBooking || reviewRating === 0) return;
-
-    const updatedBookings = { ...bookingsData };
-    updatedBookings.past = updatedBookings.past.map(b =>
-      b.id === selectedBooking.id ? { ...b, rating: reviewRating } : b
-    );
-    setBookingsData(updatedBookings);
+    setLocalRatings(prev => ({ ...prev, [selectedBooking.id]: reviewRating }));
     setShowReviewModal(false);
     setReviewRating(0);
     setReviewText('');
   };
 
   const handleBookAgain = (booking) => {
-    navigation.navigate('ParkingDetails', {
-      parkingData: {
-        name: booking.parkingName,
-        address: booking.address,
-        pricePerHour: booking.price / 3,
-      },
-    });
+    navigation.navigate('Home');
   };
 
-  const renderStars = (rating, interactive = false, size = 20) => {
+  // ─── Status helpers ────────────────────────────────────────────────────────
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active':    return '#10B981';
+      case 'confirmed': return '#3B82F6';
+      case 'pending':   return '#F59E0B';
+      case 'completed': return '#6B7280';
+      case 'cancelled': return '#EF4444';
+      case 'rejected':  return '#DC2626';
+      case 'no_show':   return '#9CA3AF';
+      default:          return '#6B7280';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'active':    return 'In Progress';
+      case 'confirmed': return 'Confirmed';
+      case 'pending':   return 'Pending Approval';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      case 'rejected':  return 'Rejected';
+      case 'no_show':   return 'No Show';
+      default:          return status;
+    }
+  };
+
+  // ─── Render helpers ────────────────────────────────────────────────────────
+
+  const renderStars = (rating, interactive = false, size = 20) => (
+    <View style={styles.starsContainer}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <TouchableOpacity
+          key={star}
+          disabled={!interactive}
+          onPress={() => interactive && setReviewRating(star)}
+        >
+          <Icon
+            name="star"
+            size={size}
+            color={star <= rating ? '#F59E0B' : '#E5E7EB'}
+            style={{ marginHorizontal: 2 }}
+          />
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderBookingCard = ({ item }) => {
+    const parkingName = getSpaceName(item);
+    const address = getSpaceAddress(item);
+    const dateLabel = formatDate(item.startTime);
+    const startLabel = formatTime(item.startTime);
+    const endLabel = formatTime(item.endTime);
+    const price = item.totalAmount ?? 0;
+    const rating = localRatings[item.id];
+
     return (
-      <View style={styles.starsContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity
-            key={star}
-            disabled={!interactive}
-            onPress={() => interactive && setReviewRating(star)}
-          >
-            <Icon
-              name="star"
-              size={size}
-              color={star <= rating ? '#F59E0B' : '#E5E7EB'}
-              style={{ marginHorizontal: 2 }}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  };
+      <TouchableOpacity
+        style={styles.bookingCard}
+        onPress={() => handleViewDetails(item)}
+        activeOpacity={0.7}
+      >
+        {/* Card Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.parkingIconContainer}>
+            <MaterialIcon name="parking" size={22} color="#1A73E8" />
+          </View>
+          <View style={styles.cardTitleSection}>
+            <Text style={styles.parkingName} numberOfLines={1}>{parkingName}</Text>
+            <Text style={styles.bookingId}>Booking #{item.bookingNumber || item.id?.slice(-6)}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+              {getStatusLabel(item.status)}
+            </Text>
+          </View>
+        </View>
 
-  const renderBookingCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.bookingCard}
-      onPress={() => handleViewDetails(item)}
-      activeOpacity={0.7}
-    >
-      {/* Card Header */}
-      <View style={styles.cardHeader}>
-        <View style={styles.parkingIconContainer}>
-          <MaterialIcon name="parking" size={22} color="#1A73E8" />
+        {/* Card Details */}
+        <View style={styles.cardDetails}>
+          <View style={styles.detailRow}>
+            <View style={styles.detailItem}>
+              <Icon name="map-pin" size={14} color="#6B7280" />
+              <Text style={styles.detailText} numberOfLines={1}>{address}</Text>
+            </View>
+          </View>
+          <View style={styles.detailRow}>
+            <View style={styles.detailItem}>
+              <Icon name="calendar" size={14} color="#6B7280" />
+              <Text style={styles.detailText}>{dateLabel}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Icon name="clock" size={14} color="#6B7280" />
+              <Text style={styles.detailText}>{startLabel} – {endLabel}</Text>
+            </View>
+          </View>
+          <View style={styles.detailRow}>
+            {item.bookingMode === 'request' && item.status === 'pending' ? (
+              <View style={styles.detailItem}>
+                <Icon name="info" size={14} color="#F59E0B" />
+                <Text style={[styles.detailText, { color: '#F59E0B' }]}>Awaiting owner approval</Text>
+              </View>
+            ) : (
+              <View style={styles.detailItem} />
+            )}
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceLabel}>Total:</Text>
+              <Text style={styles.priceValue}>₹{price.toFixed(2)}</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.cardTitleSection}>
-          <Text style={styles.parkingName} numberOfLines={1}>{item.parkingName}</Text>
-          <Text style={styles.bookingId}>Booking #{item.id}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {getStatusLabel(item.status)}
-          </Text>
-        </View>
-      </View>
 
-      {/* Card Details */}
-      <View style={styles.cardDetails}>
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Icon name="map-pin" size={14} color="#6B7280" />
-            <Text style={styles.detailText} numberOfLines={1}>{item.address}</Text>
-          </View>
-        </View>
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Icon name="calendar" size={14} color="#6B7280" />
-            <Text style={styles.detailText}>{item.date}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Icon name="clock" size={14} color="#6B7280" />
-            <Text style={styles.detailText}>{item.startTime} - {item.endTime}</Text>
-          </View>
-        </View>
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Icon name="hash" size={14} color="#6B7280" />
-            <Text style={styles.detailText}>Spot {item.spot}</Text>
-          </View>
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>Total:</Text>
-            <Text style={styles.priceValue}>₹{item.price.toFixed(2)}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Card Actions */}
-      <View style={styles.cardActions}>
-        {item.status === 'active' && (
-          <>
-            <TouchableOpacity style={styles.actionButton}>
-              <Icon name="navigation" size={16} color="#1A73E8" />
-              <Text style={styles.actionButtonText}>Navigate</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.primaryButton]}
-              onPress={() => {
-                setSelectedBooking(item);
-                setShowExtendModal(true);
-              }}
-            >
-              <Icon name="plus-circle" size={16} color="#FFFFFF" />
-              <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Extend</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {(item.status === 'confirmed' || item.status === 'pending') && (
-          <>
-            <TouchableOpacity style={styles.actionButton}>
-              <Icon name="edit-2" size={16} color="#1A73E8" />
-              <Text style={styles.actionButtonText}>Modify</Text>
-            </TouchableOpacity>
+        {/* Card Actions */}
+        <View style={styles.cardActions}>
+          {item.status === 'active' && (
+            <>
+              <TouchableOpacity style={styles.actionButton}>
+                <Icon name="navigation" size={16} color="#1A73E8" />
+                <Text style={styles.actionButtonText}>Navigate</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.primaryButton]}
+                onPress={() => { setSelectedBooking(item); setShowExtendModal(true); }}
+              >
+                <Icon name="plus-circle" size={16} color="#FFFFFF" />
+                <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Extend</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          {(item.status === 'confirmed' || item.status === 'pending') && (
             <TouchableOpacity
               style={[styles.actionButton, styles.cancelButton]}
-              onPress={() => {
-                setSelectedBooking(item);
-                setShowCancelModal(true);
-              }}
+              onPress={() => { setSelectedBooking(item); setShowCancelModal(true); }}
             >
               <Icon name="x" size={16} color="#EF4444" />
               <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Cancel</Text>
             </TouchableOpacity>
-          </>
-        )}
-        {item.status === 'completed' && (
-          <>
+          )}
+          {item.status === 'completed' && (
+            <>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => handleBookAgain(item)}
+              >
+                <Icon name="repeat" size={16} color="#1A73E8" />
+                <Text style={styles.actionButtonText}>Book Again</Text>
+              </TouchableOpacity>
+              {!rating ? (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.reviewButton]}
+                  onPress={() => { setSelectedBooking(item); setShowReviewModal(true); }}
+                >
+                  <Icon name="star" size={16} color="#F59E0B" />
+                  <Text style={[styles.actionButtonText, styles.reviewButtonText]}>Review</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.ratedContainer}>
+                  {renderStars(rating, false, 14)}
+                </View>
+              )}
+            </>
+          )}
+          {(item.status === 'cancelled' || item.status === 'no_show') && (
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { flex: 1 }]}
               onPress={() => handleBookAgain(item)}
             >
               <Icon name="repeat" size={16} color="#1A73E8" />
               <Text style={styles.actionButtonText}>Book Again</Text>
             </TouchableOpacity>
-            {!item.rating ? (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.reviewButton]}
-                onPress={() => {
-                  setSelectedBooking(item);
-                  setShowReviewModal(true);
-                }}
-              >
-                <Icon name="star" size={16} color="#F59E0B" />
-                <Text style={[styles.actionButtonText, styles.reviewButtonText]}>Review</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.ratedContainer}>
-                {renderStars(item.rating, false, 14)}
-              </View>
-            )}
-          </>
-        )}
-        {item.status === 'cancelled' && (
-          <TouchableOpacity
-            style={[styles.actionButton, { flex: 1 }]}
-            onPress={() => handleBookAgain(item)}
-          >
-            <Icon name="repeat" size={16} color="#1A73E8" />
-            <Text style={styles.actionButtonText}>Book Again</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -452,7 +440,7 @@ const BookingManagementPage = ({ navigation }) => {
       </Text>
       <TouchableOpacity
         style={styles.emptyButton}
-        onPress={() => navigation.navigate('Search')}
+        onPress={() => navigation.navigate('Home')}
       >
         <Icon name="search" size={18} color="#FFFFFF" />
         <Text style={styles.emptyButtonText}>Find Parking</Text>
@@ -460,8 +448,10 @@ const BookingManagementPage = ({ navigation }) => {
     </View>
   );
 
+  // ─── Main render ───────────────────────────────────────────────────────────
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -481,8 +471,6 @@ const BookingManagementPage = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Search Bar */}
         {showSearch && (
           <View style={styles.searchContainer}>
             <Icon name="search" size={18} color="#9CA3AF" />
@@ -504,61 +492,70 @@ const BookingManagementPage = ({ navigation }) => {
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[styles.tab, selectedTab === tab.id && styles.tabActive]}
-            onPress={() => handleTabChange(tab.id)}
-          >
-            <Icon
-              name={tab.icon}
-              size={16}
-              color={selectedTab === tab.id ? '#1A73E8' : '#9CA3AF'}
-            />
-            <Text style={[styles.tabText, selectedTab === tab.id && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-            {bookingsData[tab.id]?.length > 0 && (
-              <View style={[
-                styles.tabBadge,
-                selectedTab === tab.id && styles.tabBadgeActive
-              ]}>
-                <Text style={[
-                  styles.tabBadgeText,
-                  selectedTab === tab.id && styles.tabBadgeTextActive
-                ]}>
-                  {bookingsData[tab.id].length}
-                </Text>
-              </View>
-            )}
-            {selectedTab === tab.id && <View style={styles.tabIndicator} />}
-          </TouchableOpacity>
-        ))}
+        {tabs.map((tab) => {
+          const count = tabCount(tab.id);
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tab, selectedTab === tab.id && styles.tabActive]}
+              onPress={() => handleTabChange(tab.id)}
+            >
+              <Icon
+                name={tab.icon}
+                size={16}
+                color={selectedTab === tab.id ? '#1A73E8' : '#9CA3AF'}
+              />
+              <Text style={[styles.tabText, selectedTab === tab.id && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+              {count > 0 && (
+                <View style={[styles.tabBadge, selectedTab === tab.id && styles.tabBadgeActive]}>
+                  <Text style={[styles.tabBadgeText, selectedTab === tab.id && styles.tabBadgeTextActive]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
+              {selectedTab === tab.id && <View style={styles.tabIndicator} />}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* Bookings List */}
-      {filteredBookings.length > 0 ? (
+      {/* Content */}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1A73E8" />
+          <Text style={styles.loadingText}>Loading bookings...</Text>
+        </View>
+      ) : filteredBookings.length > 0 ? (
         <FlatList
           data={filteredBookings}
           renderItem={renderBookingCard}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => fetchBookings(true)}
+              tintColor="#1A73E8"
+            />
+          }
         />
       ) : (
         renderEmptyState()
       )}
 
-      {/* FAB - New Booking */}
+      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('Search')}
+        onPress={() => navigation.navigate('Home')}
         activeOpacity={0.8}
       >
         <Icon name="plus" size={24} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Booking Details Modal */}
+      {/* ── Booking Details Modal ── */}
       <Modal
         visible={showDetailsModal}
         animationType="slide"
@@ -568,7 +565,6 @@ const BookingManagementPage = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.detailsModalContent}>
             <View style={styles.modalHandle} />
-
             <View style={styles.detailsModalHeader}>
               <Text style={styles.detailsModalTitle}>Booking Details</Text>
               <TouchableOpacity onPress={() => setShowDetailsModal(false)}>
@@ -579,10 +575,7 @@ const BookingManagementPage = ({ navigation }) => {
             {selectedBooking && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Status Banner */}
-                <View style={[
-                  styles.statusBanner,
-                  { backgroundColor: getStatusColor(selectedBooking.status) + '15' }
-                ]}>
+                <View style={[styles.statusBanner, { backgroundColor: getStatusColor(selectedBooking.status) + '15' }]}>
                   <Icon
                     name={selectedBooking.status === 'active' ? 'play-circle' : 'check-circle'}
                     size={20}
@@ -591,6 +584,11 @@ const BookingManagementPage = ({ navigation }) => {
                   <Text style={[styles.statusBannerText, { color: getStatusColor(selectedBooking.status) }]}>
                     {getStatusLabel(selectedBooking.status)}
                   </Text>
+                  {selectedBooking.bookingMode === 'request' && selectedBooking.status === 'pending' && (
+                    <Text style={[styles.statusBannerText, { color: '#F59E0B', fontSize: 12 }]}>
+                      {' '}· Requires owner approval
+                    </Text>
+                  )}
                 </View>
 
                 {/* Parking Info */}
@@ -601,18 +599,8 @@ const BookingManagementPage = ({ navigation }) => {
                       <MaterialIcon name="parking" size={28} color="#1A73E8" />
                     </View>
                     <View style={styles.parkingInfoContent}>
-                      <Text style={styles.parkingInfoName}>{selectedBooking.parkingName}</Text>
-                      <Text style={styles.parkingInfoAddress}>{selectedBooking.address}</Text>
-                      <View style={styles.parkingInfoBadges}>
-                        <View style={styles.infoBadge}>
-                          <Text style={styles.infoBadgeText}>{selectedBooking.spaceType}</Text>
-                        </View>
-                        {selectedBooking.amenities.slice(0, 2).map((amenity, idx) => (
-                          <View key={idx} style={styles.infoBadge}>
-                            <Text style={styles.infoBadgeText}>{amenity}</Text>
-                          </View>
-                        ))}
-                      </View>
+                      <Text style={styles.parkingInfoName}>{getSpaceName(selectedBooking)}</Text>
+                      <Text style={styles.parkingInfoAddress}>{getSpaceAddress(selectedBooking)}</Text>
                     </View>
                   </View>
                 </View>
@@ -625,7 +613,9 @@ const BookingManagementPage = ({ navigation }) => {
                       <View style={styles.timelineDot} />
                       <View style={styles.timelineContent}>
                         <Text style={styles.timelineLabel}>Start</Text>
-                        <Text style={styles.timelineValue}>{selectedBooking.date}, {selectedBooking.startTime}</Text>
+                        <Text style={styles.timelineValue}>
+                          {formatDate(selectedBooking.startTime)}, {formatTime(selectedBooking.startTime)}
+                        </Text>
                       </View>
                     </View>
                     <View style={styles.timelineLine} />
@@ -633,7 +623,9 @@ const BookingManagementPage = ({ navigation }) => {
                       <View style={[styles.timelineDot, styles.timelineDotEnd]} />
                       <View style={styles.timelineContent}>
                         <Text style={styles.timelineLabel}>End</Text>
-                        <Text style={styles.timelineValue}>{selectedBooking.date}, {selectedBooking.endTime}</Text>
+                        <Text style={styles.timelineValue}>
+                          {formatDate(selectedBooking.endTime)}, {formatTime(selectedBooking.endTime)}
+                        </Text>
                       </View>
                     </View>
                   </View>
@@ -644,40 +636,56 @@ const BookingManagementPage = ({ navigation }) => {
                   <Text style={styles.detailsSectionTitle}>Payment</Text>
                   <View style={styles.paymentCard}>
                     <View style={styles.paymentRow}>
-                      <Text style={styles.paymentLabel}>Spot Number</Text>
-                      <Text style={styles.paymentValue}>{selectedBooking.spot}</Text>
+                      <Text style={styles.paymentLabel}>Booking Number</Text>
+                      <Text style={styles.paymentValue}>#{selectedBooking.bookingNumber || '—'}</Text>
                     </View>
                     <View style={styles.paymentRow}>
-                      <Text style={styles.paymentLabel}>Payment Method</Text>
-                      <Text style={styles.paymentValue}>{selectedBooking.paymentMethod}</Text>
+                      <Text style={styles.paymentLabel}>Duration</Text>
+                      <Text style={styles.paymentValue}>
+                        {selectedBooking.durationHours
+                          ? `${selectedBooking.durationHours.toFixed(1)} hrs`
+                          : '—'}
+                      </Text>
                     </View>
+                    <View style={styles.paymentRow}>
+                      <Text style={styles.paymentLabel}>Payment Status</Text>
+                      <Text style={[styles.paymentValue, {
+                        color: selectedBooking.paymentStatus === 'paid' ? '#10B981' :
+                               selectedBooking.paymentStatus === 'refunded' ? '#3B82F6' : '#F59E0B'
+                      }]}>
+                        {selectedBooking.paymentStatus
+                          ? selectedBooking.paymentStatus.charAt(0).toUpperCase() + selectedBooking.paymentStatus.slice(1).replace('_', ' ')
+                          : '—'}
+                      </Text>
+                    </View>
+                    {selectedBooking.discountAmount > 0 && (
+                      <View style={styles.paymentRow}>
+                        <Text style={styles.paymentLabel}>Discount</Text>
+                        <Text style={[styles.paymentValue, { color: '#10B981' }]}>
+                          -₹{selectedBooking.discountAmount.toFixed(2)}
+                        </Text>
+                      </View>
+                    )}
                     <View style={styles.paymentDivider} />
                     <View style={styles.paymentRow}>
-                      <Text style={styles.paymentTotalLabel}>Total Paid</Text>
-                      <Text style={styles.paymentTotalValue}>₹{selectedBooking.price.toFixed(2)}</Text>
+                      <Text style={styles.paymentTotalLabel}>Total</Text>
+                      <Text style={styles.paymentTotalValue}>
+                        ₹{(selectedBooking.totalAmount ?? 0).toFixed(2)}
+                      </Text>
                     </View>
                   </View>
                 </View>
 
-                {/* Owner Contact */}
-                <View style={styles.detailsSection}>
-                  <Text style={styles.detailsSectionTitle}>Contact Owner</Text>
-                  <View style={styles.ownerCard}>
-                    <View style={styles.ownerAvatar}>
-                      <Icon name="user" size={20} color="#1A73E8" />
+                {/* Cancellation Reason */}
+                {selectedBooking.cancellationReason ? (
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionTitle}>Cancellation Reason</Text>
+                    <View style={styles.cancellationCard}>
+                      <Icon name="info" size={16} color="#EF4444" />
+                      <Text style={styles.cancellationText}>{selectedBooking.cancellationReason}</Text>
                     </View>
-                    <View style={styles.ownerInfo}>
-                      <Text style={styles.ownerName}>{selectedBooking.ownerName}</Text>
-                      <Text style={styles.ownerPhone}>{selectedBooking.ownerPhone}</Text>
-                    </View>
-                    <TouchableOpacity style={styles.callButton}>
-                      <Icon name="phone" size={18} color="#1A73E8" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.messageButton}>
-                      <Icon name="message-circle" size={18} color="#FFFFFF" />
-                    </TouchableOpacity>
                   </View>
-                </View>
+                ) : null}
 
                 {/* Action Buttons */}
                 <View style={styles.detailsActions}>
@@ -700,22 +708,16 @@ const BookingManagementPage = ({ navigation }) => {
                     </>
                   )}
                   {(selectedBooking.status === 'confirmed' || selectedBooking.status === 'pending') && (
-                    <>
-                      <TouchableOpacity style={styles.detailsActionButton}>
-                        <Icon name="edit-2" size={18} color="#1A73E8" />
-                        <Text style={styles.detailsActionText}>Modify</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.detailsActionButton, styles.detailsActionCancel]}
-                        onPress={() => {
-                          setShowDetailsModal(false);
-                          setTimeout(() => setShowCancelModal(true), 300);
-                        }}
-                      >
-                        <Icon name="x-circle" size={18} color="#EF4444" />
-                        <Text style={[styles.detailsActionText, { color: '#EF4444' }]}>Cancel</Text>
-                      </TouchableOpacity>
-                    </>
+                    <TouchableOpacity
+                      style={[styles.detailsActionButton, styles.detailsActionCancel, { flex: 1 }]}
+                      onPress={() => {
+                        setShowDetailsModal(false);
+                        setTimeout(() => setShowCancelModal(true), 300);
+                      }}
+                    >
+                      <Icon name="x-circle" size={18} color="#EF4444" />
+                      <Text style={[styles.detailsActionText, { color: '#EF4444' }]}>Cancel Booking</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
 
@@ -726,7 +728,7 @@ const BookingManagementPage = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Cancel Confirmation Modal */}
+      {/* ── Cancel Confirmation Modal ── */}
       <Modal
         visible={showCancelModal}
         animationType="fade"
@@ -740,27 +742,41 @@ const BookingManagementPage = ({ navigation }) => {
             </View>
             <Text style={styles.confirmTitle}>Cancel Booking?</Text>
             <Text style={styles.confirmMessage}>
-              Are you sure you want to cancel this booking? This action cannot be undone.
+              {selectedBooking?.bookingMode === 'request'
+                ? 'Cancelling a pending request will notify the owner.'
+                : 'Are you sure? This action cannot be undone.'}
             </Text>
+            <TextInput
+              style={styles.cancelReasonInput}
+              placeholder="Reason (optional)"
+              placeholderTextColor="#9CA3AF"
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              multiline
+            />
             <View style={styles.confirmActions}>
               <TouchableOpacity
                 style={styles.confirmCancelButton}
-                onPress={() => setShowCancelModal(false)}
+                onPress={() => { setShowCancelModal(false); setCancelReason(''); }}
+                disabled={isCancelling}
               >
                 <Text style={styles.confirmCancelText}>Keep Booking</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.confirmDeleteButton}
+                style={[styles.confirmDeleteButton, isCancelling && { opacity: 0.7 }]}
                 onPress={handleCancelBooking}
+                disabled={isCancelling}
               >
-                <Text style={styles.confirmDeleteText}>Yes, Cancel</Text>
+                {isCancelling
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
+                  : <Text style={styles.confirmDeleteText}>Yes, Cancel</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Extend Booking Modal */}
+      {/* ── Extend Booking Modal ── */}
       <Modal
         visible={showExtendModal}
         animationType="slide"
@@ -774,7 +790,6 @@ const BookingManagementPage = ({ navigation }) => {
             <Text style={styles.extendModalSubtitle}>
               How many additional hours do you need?
             </Text>
-
             <View style={styles.hourSelector}>
               <TouchableOpacity
                 style={styles.hourButton}
@@ -793,37 +808,39 @@ const BookingManagementPage = ({ navigation }) => {
                 <Icon name="plus" size={24} color="#1A73E8" />
               </TouchableOpacity>
             </View>
-
             {selectedBooking && (
               <View style={styles.extendPriceCard}>
                 <View style={styles.extendPriceRow}>
-                  <Text style={styles.extendPriceLabel}>Additional Cost</Text>
+                  <Text style={styles.extendPriceLabel}>Additional Cost (estimate)</Text>
                   <Text style={styles.extendPriceValue}>
-                    ₹{((selectedBooking.price / 3) * extendHours).toFixed(2)}
+                    ₹{((selectedBooking.totalAmount / Math.max(selectedBooking.durationHours, 1)) * extendHours).toFixed(2)}
                   </Text>
                 </View>
               </View>
             )}
-
             <View style={styles.extendActions}>
               <TouchableOpacity
                 style={styles.extendCancelButton}
                 onPress={() => setShowExtendModal(false)}
+                disabled={isExtending}
               >
                 <Text style={styles.extendCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.extendConfirmButton}
+                style={[styles.extendConfirmButton, isExtending && { opacity: 0.7 }]}
                 onPress={handleExtendBooking}
+                disabled={isExtending}
               >
-                <Text style={styles.extendConfirmText}>Confirm Extension</Text>
+                {isExtending
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
+                  : <Text style={styles.extendConfirmText}>Confirm Extension</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Review Modal */}
+      {/* ── Review Modal ── */}
       <Modal
         visible={showReviewModal}
         animationType="slide"
@@ -834,15 +851,12 @@ const BookingManagementPage = ({ navigation }) => {
           <View style={styles.reviewModalContent}>
             <View style={styles.modalHandle} />
             <Text style={styles.reviewModalTitle}>Rate Your Experience</Text>
-
             {selectedBooking && (
-              <Text style={styles.reviewParkingName}>{selectedBooking.parkingName}</Text>
+              <Text style={styles.reviewParkingName}>{getSpaceName(selectedBooking)}</Text>
             )}
-
             <View style={styles.reviewStarsContainer}>
               {renderStars(reviewRating, true, 36)}
             </View>
-
             <TextInput
               style={styles.reviewInput}
               placeholder="Share your experience (optional)"
@@ -852,23 +866,15 @@ const BookingManagementPage = ({ navigation }) => {
               value={reviewText}
               onChangeText={setReviewText}
             />
-
             <View style={styles.reviewActions}>
               <TouchableOpacity
                 style={styles.reviewCancelButton}
-                onPress={() => {
-                  setShowReviewModal(false);
-                  setReviewRating(0);
-                  setReviewText('');
-                }}
+                onPress={() => { setShowReviewModal(false); setReviewRating(0); setReviewText(''); }}
               >
                 <Text style={styles.reviewCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.reviewSubmitButton,
-                  reviewRating === 0 && styles.reviewSubmitDisabled
-                ]}
+                style={[styles.reviewSubmitButton, reviewRating === 0 && styles.reviewSubmitDisabled]}
                 onPress={handleSubmitReview}
                 disabled={reviewRating === 0}
               >
@@ -879,7 +885,7 @@ const BookingManagementPage = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Filter Modal */}
+      {/* ── Filter Modal ── */}
       <Modal
         visible={showFilterModal}
         animationType="slide"
@@ -895,41 +901,29 @@ const BookingManagementPage = ({ navigation }) => {
                 <Icon name="x" size={24} color="#1A1A2E" />
               </TouchableOpacity>
             </View>
-
             <Text style={styles.filterSectionTitle}>Status</Text>
             <View style={styles.filterOptions}>
-              {['all', 'confirmed', 'completed', 'cancelled'].map((status) => (
+              {['all', 'active', 'confirmed', 'pending', 'completed', 'cancelled', 'rejected', 'no_show'].map((status) => (
                 <TouchableOpacity
                   key={status}
-                  style={[
-                    styles.filterOption,
-                    filterStatus === status && styles.filterOptionActive
-                  ]}
+                  style={[styles.filterOption, filterStatus === status && styles.filterOptionActive]}
                   onPress={() => setFilterStatus(status)}
                 >
-                  <Text style={[
-                    styles.filterOptionText,
-                    filterStatus === status && styles.filterOptionTextActive
-                  ]}>
+                  <Text style={[styles.filterOptionText, filterStatus === status && styles.filterOptionTextActive]}>
                     {status === 'all' ? 'All' : getStatusLabel(status)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-
             <TouchableOpacity
               style={styles.filterApplyButton}
               onPress={() => setShowFilterModal(false)}
             >
               <Text style={styles.filterApplyText}>Apply Filter</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.filterResetButton}
-              onPress={() => {
-                setFilterStatus('all');
-                setShowFilterModal(false);
-              }}
+              onPress={() => { setFilterStatus('all'); setShowFilterModal(false); }}
             >
               <Text style={styles.filterResetText}>Reset</Text>
             </TouchableOpacity>
@@ -1043,6 +1037,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A73E8',
     borderTopLeftRadius: 3,
     borderTopRightRadius: 3,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   listContent: {
     padding: 16,
@@ -1422,6 +1426,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1A73E8',
   },
+  cancellationCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 14,
+    gap: 10,
+  },
+  cancellationText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#EF4444',
+    lineHeight: 18,
+  },
   ownerCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1529,8 +1547,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
     lineHeight: 20,
+  },
+  cancelReasonInput: {
+    width: '100%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: '#1A1A2E',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minHeight: 60,
+    textAlignVertical: 'top',
+    marginBottom: 20,
   },
   confirmActions: {
     flexDirection: 'row',
@@ -1555,6 +1586,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#EF4444',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   confirmDeleteText: {
     fontSize: 15,
@@ -1653,6 +1685,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#1A73E8',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   extendConfirmText: {
     fontSize: 15,

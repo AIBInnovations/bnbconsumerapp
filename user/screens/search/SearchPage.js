@@ -227,7 +227,9 @@ const SearchPage = ({ navigation }) => {
 
   // Filter results based on selected filters
   const filteredResults = useMemo(() => {
-    let results = [...parkingSpots];
+    // TODO: replace with real API results; mock data commented out
+    // let results = [...parkingSpots];
+    let results = [];
 
     // Apply search query
     if (searchQuery.trim()) {

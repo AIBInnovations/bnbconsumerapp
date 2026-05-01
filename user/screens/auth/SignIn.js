@@ -8,18 +8,63 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
+
+import { parseIndianPhone } from '../../utils/validateForm';
+import * as authService from '../../services/authService';
+import * as msg91Service from '../../services/msg91Service';
+
+const { Msg91Error } = msg91Service;
 
 const SignIn = ({ navigation }) => {
-  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [phone, setPhone] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    console.log('Login pressed');
-    navigation.navigate('OTPVerification', { email: emailOrPhone });
+  // Derive parsed phone whenever input changes
+  const parsedPhone = parseIndianPhone(phone);
+  const isPhoneValid = !!parsedPhone;
+  const canSubmit = isPhoneValid && acceptTerms && !isLoading;
+
+  const handleSendOtp = async () => {
+    if (!canSubmit) return;
+    setErrorMessage('');
+    setIsLoading(true);
+
+    try {
+      // MOCK OTP (backend) — replaced by MSG91 widget. Kept here, commented out,
+      // so the legacy mock flow can be re-enabled if needed.
+      // await authService.sendOtp(parsedPhone, 'sms');
+
+      await msg91Service.sendOtp(parsedPhone);
+      navigation.navigate('OTPVerification', {
+        identifier: parsedPhone,
+        channel: 'sms',
+      });
+    } catch (err) {
+      const code = err?.code || '';
+      if (err instanceof Msg91Error) {
+        if (code === 'NETWORK_ERROR') {
+          setErrorMessage('Check your internet connection and try again.');
+        } else {
+          setErrorMessage(err.message || 'Failed to send OTP. Please try again.');
+        }
+      } else if (code === 'AUTH_OTP_RATE_LIMITED') {
+        setErrorMessage('Too many attempts. Please try again later.');
+      } else if (code === 'REQ_INVALID_FORMAT' || code === 'REQ_MISSING_FIELD') {
+        setErrorMessage('Enter a valid 10-digit mobile number.');
+      } else if (code === 'NETWORK_ERROR' || code === 'NETWORK_TIMEOUT') {
+        setErrorMessage('Check your internet connection and try again.');
+      } else {
+        setErrorMessage(err?.message || 'Something went wrong. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -41,36 +86,50 @@ const SignIn = ({ navigation }) => {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Sign In</Text>
-            <View style={styles.subtitleRow}>
-              <Text style={styles.subtitleText}>New here? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-                <Text style={styles.subtitleLink}>Sign up</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.title}>Welcome</Text>
+            <Text style={styles.subtitle}>Enter your mobile number to continue</Text>
           </View>
 
-          {/* Form Container */}
+          {/* Form */}
           <View style={styles.formContainer}>
-            {/* Email/Phone Input */}
+            {/* Phone Input */}
             <View style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <View style={styles.inputIconContainer}>
-                  <Icon name="mail" size={18} color="#9CA3AF" />
+              <View style={[styles.inputWrapper, errorMessage ? styles.inputWrapperError : null]}>
+                {/* Country Code */}
+                <View style={styles.countryCode}>
+                  <Text style={styles.countryCodeText}>+91</Text>
                 </View>
+                <View style={styles.divider} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email or Phone Number"
+                  placeholder="Mobile number"
                   placeholderTextColor="#9CA3AF"
-                  value={emailOrPhone}
-                  onChangeText={setEmailOrPhone}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
+                  value={phone}
+                  onChangeText={(text) => {
+                    setPhone(text);
+                    setErrorMessage('');
+                  }}
+                  keyboardType="phone-pad"
+                  maxLength={15}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSendOtp}
                 />
+                {isPhoneValid && (
+                  <Icon name="check-circle" size={18} color="#0D7377" style={styles.validIcon} />
+                )}
               </View>
+              {errorMessage ? (
+                <Text
+                  style={styles.errorText}
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive"
+                >
+                  {errorMessage}
+                </Text>
+              ) : null}
             </View>
 
-            {/* Accept Terms Checkbox */}
+            {/* Terms Checkbox */}
             <TouchableOpacity
               style={styles.checkboxContainer}
               onPress={() => setAcceptTerms(!acceptTerms)}
@@ -79,38 +138,36 @@ const SignIn = ({ navigation }) => {
               <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
                 {acceptTerms && <Icon name="check" size={14} color="#FFFFFF" />}
               </View>
-              <Text style={styles.checkboxLabel}>Accept all the Terms & Conditions</Text>
+              <Text style={styles.checkboxLabel}>
+                I agree to the{' '}
+                <Text style={styles.checkboxLink}>Terms & Conditions</Text>
+              </Text>
             </TouchableOpacity>
 
-            {/* Sign In Button */}
+            {/* Send OTP Button */}
             <TouchableOpacity
-              style={[styles.signInButton, !acceptTerms && styles.signInButtonDisabled]}
-              onPress={handleLogin}
-              disabled={!acceptTerms}
+              style={[styles.primaryButton, !canSubmit && styles.primaryButtonDisabled]}
+              onPress={handleSendOtp}
+              disabled={!canSubmit}
+              activeOpacity={0.8}
             >
-              <Text style={styles.signInButtonText}>Sign In</Text>
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Send OTP</Text>
+              )}
             </TouchableOpacity>
-
-            {/* Social Login Icons */}
-            <View style={styles.socialContainer}>
-              <TouchableOpacity style={styles.socialIconButton}>
-                <FontAwesome name="google" size={20} color="#EA4335" />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.socialIconButton, styles.appleButton]}>
-                <FontAwesome name="apple" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.socialIconButton, styles.facebookButton]}>
-                <FontAwesome name="facebook" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
           </View>
 
-          {/* Bottom Decorative */}
-          <View style={styles.decorativeBottom}>
-            <View style={styles.blobBottomLeft} />
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Bottom Decorative — pinned to the SafeAreaView (outside the
+          KeyboardAvoidingView) so it doesn't ride up over the Send OTP
+          button when the keyboard opens. The keyboard simply covers it. */}
+      <View style={styles.decorativeBottom} pointerEvents="none">
+        <View style={styles.blobBottomLeft} />
+      </View>
     </SafeAreaView>
   );
 };
@@ -155,7 +212,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0D7377',
   },
   header: {
-    marginTop: 60,
+    marginTop: 80,
     marginBottom: 40,
   },
   title: {
@@ -164,18 +221,9 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
     marginBottom: 8,
   },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  subtitleText: {
+  subtitle: {
     fontSize: 14,
     color: '#6B7280',
-  },
-  subtitleLink: {
-    fontSize: 14,
-    color: '#0D7377',
-    fontWeight: '600',
   },
   formContainer: {
     flex: 1,
@@ -189,12 +237,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     borderRadius: 12,
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  inputIconContainer: {
-    width: 24,
+  inputWrapperError: {
+    borderColor: '#EF4444',
+  },
+  countryCode: {
+    paddingRight: 12,
+    paddingVertical: 16,
+  },
+  countryCodeText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A2E',
+  },
+  divider: {
+    width: 1,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#D1D5DB',
     marginRight: 12,
   },
   input: {
@@ -202,6 +263,21 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontSize: 15,
     color: '#1A1A2E',
+  },
+  validIcon: {
+    marginLeft: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 6,
+    marginLeft: 4,
+  },
+  maskedText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+    marginLeft: 4,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -227,44 +303,27 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     color: '#6B7280',
+    flex: 1,
   },
-  signInButton: {
+  checkboxLink: {
+    color: '#0D7377',
+    fontWeight: '600',
+  },
+  primaryButton: {
     backgroundColor: '#0D7377',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center',
+    minHeight: 52,
   },
-  signInButtonDisabled: {
+  primaryButtonDisabled: {
     backgroundColor: '#9CA3AF',
   },
-  signInButtonText: {
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-  },
-  socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-  },
-  socialIconButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  appleButton: {
-    backgroundColor: '#1A1A2E',
-    borderColor: '#1A1A2E',
-  },
-  facebookButton: {
-    backgroundColor: '#1877F2',
-    borderColor: '#1877F2',
   },
   decorativeBottom: {
     position: 'absolute',

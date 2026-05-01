@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,31 +6,45 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   Image,
   Modal,
   FlatList,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppAlert } from '../../components/AppAlert';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Feather';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 
+import { STORAGE_KEYS } from '../../utils/constants';
+import { useAuth } from '../../context/AuthContext';
+import * as userService from '../../services/userService';
+import * as api from '../../services/api';
+
+const DRAFT_KEY = STORAGE_KEYS.ONBOARDING_DRAFT;
+const AUTOSAVE_DELAY = 800; // ms
+
 const vehicleTypes = [
-  { id: '1', name: 'Car', icon: 'truck' },
-  { id: '2', name: 'SUV', icon: 'truck' },
-  { id: '3', name: 'Van', icon: 'truck' },
-  { id: '4', name: 'Motorcycle', icon: 'truck' },
-  { id: '5', name: 'Truck', icon: 'truck' },
+  { id: '1', name: 'Car', apiType: 'car', icon: 'truck' },
+  { id: '2', name: 'SUV', apiType: 'suv', icon: 'truck' },
+  { id: '3', name: 'Van', apiType: 'van', icon: 'truck' },
+  { id: '4', name: 'Motorcycle', apiType: 'motorcycle', icon: 'truck' },
+  { id: '5', name: 'Truck', apiType: 'truck', icon: 'truck' },
 ];
 
 const UserOnboarding = ({ navigation }) => {
+  const auth = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
-  // Form states
+  // Form state
   const [profileImage, setProfileImage] = useState(null);
   const [fullName, setFullName] = useState('');
   const [vehicleType, setVehicleType] = useState('');
+  const [vehicleApiType, setVehicleApiType] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [location, setLocation] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -38,21 +52,61 @@ const UserOnboarding = ({ navigation }) => {
   const [pushNotifications, setPushNotifications] = useState(true);
   const [termsAgreed, setTermsAgreed] = useState(false);
 
-  // Modal state
+  // UI state
   const [vehicleModalVisible, setVehicleModalVisible] = useState(false);
   const [imageModalVisible, setImageModalVisible] = useState(false);
-
-  // Error states
   const [errors, setErrors] = useState({});
-
-  // Form validation
   const [isFormValid, setIsFormValid] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const autosaveTimer = useRef(null);
+
+  // ─── Load draft + pre-fill from auth context on mount ─────────────────────
+  useEffect(() => {
+    async function loadDraft() {
+      try {
+        const raw = await AsyncStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const draft = JSON.parse(raw);
+          if (draft.fullName) setFullName(draft.fullName);
+          if (draft.vehicleType) setVehicleType(draft.vehicleType);
+          if (draft.vehicleApiType) setVehicleApiType(draft.vehicleApiType);
+          if (draft.registrationNumber) setRegistrationNumber(draft.registrationNumber);
+          if (draft.location) setLocation(draft.location);
+          if (draft.emailNotifications !== undefined) setEmailNotifications(draft.emailNotifications);
+          if (draft.smsNotifications !== undefined) setSmsNotifications(draft.smsNotifications);
+          if (draft.pushNotifications !== undefined) setPushNotifications(draft.pushNotifications);
+          if (draft.termsAgreed !== undefined) setTermsAgreed(draft.termsAgreed);
+        } else if (auth.user?.legalName) {
+          // Pre-fill from auth context if no draft
+          setFullName(auth.user.legalName);
+        }
+      } catch {
+        // Draft load failed silently — start fresh
+      }
+    }
+    loadDraft();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Autosave draft ────────────────────────────────────────────────────────
+  const saveDraft = useCallback(() => {
+    const draft = {
+      fullName, vehicleType, vehicleApiType, registrationNumber,
+      location, emailNotifications, smsNotifications, pushNotifications, termsAgreed,
+    };
+    AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft)).catch(() => {});
+  }, [fullName, vehicleType, vehicleApiType, registrationNumber, location,
+    emailNotifications, smsNotifications, pushNotifications, termsAgreed]);
 
   useEffect(() => {
-    validateForm();
-  }, [fullName, vehicleType, registrationNumber, termsAgreed]);
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(saveDraft, AUTOSAVE_DELAY);
+    return () => clearTimeout(autosaveTimer.current);
+  }, [saveDraft]);
 
-  const validateForm = () => {
+  // ─── Validation ────────────────────────────────────────────────────────────
+  useEffect(() => {
     const newErrors = {};
 
     if (!fullName.trim()) {
@@ -72,102 +126,121 @@ const UserOnboarding = ({ navigation }) => {
     }
 
     setErrors(newErrors);
-
-    if (
+    setIsFormValid(
       fullName.trim() &&
       /^[a-zA-Z\s]+$/.test(fullName) &&
       vehicleType &&
       registrationNumber.trim() &&
       registrationNumber.length >= 4 &&
       termsAgreed
-    ) {
-      setIsFormValid(true);
-    } else {
-      setIsFormValid(false);
-    }
-  };
+    );
+  }, [fullName, vehicleType, registrationNumber, termsAgreed]);
 
-  const handleImagePicker = () => {
-    setImageModalVisible(true);
-  };
-
+  // ─── Image picker ──────────────────────────────────────────────────────────
   const pickImageFromGallery = () => {
     setImageModalVisible(false);
-    launchImageLibrary(
-      {
-        mediaType: 'photo',
-        includeBase64: false,
-        maxHeight: 500,
-        maxWidth: 500,
-      },
-      (response) => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.error) {
-          console.log('ImagePicker Error: ', response.error);
-        } else if (response.assets && response.assets[0]) {
-          setProfileImage(response.assets[0].uri);
-        }
-      }
-    );
+    launchImageLibrary({ mediaType: 'photo', maxHeight: 500, maxWidth: 500 }, (response) => {
+      if (response.assets?.[0]) setProfileImage(response.assets[0].uri);
+    });
   };
 
   const takePhoto = () => {
     setImageModalVisible(false);
-    launchCamera(
-      {
-        mediaType: 'photo',
-        includeBase64: false,
-        maxHeight: 500,
-        maxWidth: 500,
-      },
-      (response) => {
-        if (response.didCancel) {
-          console.log('User cancelled camera');
-        } else if (response.error) {
-          console.log('Camera Error: ', response.error);
-        } else if (response.assets && response.assets[0]) {
-          setProfileImage(response.assets[0].uri);
-        }
-      }
-    );
+    launchCamera({ mediaType: 'photo', maxHeight: 500, maxWidth: 500 }, (response) => {
+      if (response.assets?.[0]) setProfileImage(response.assets[0].uri);
+    });
   };
 
-  const handleContinue = () => {
-    if (isFormValid) {
-      // Save user data and navigate to main app
-      console.log('User data:', {
-        profileImage,
-        fullName,
-        vehicleType,
-        registrationNumber,
-        location,
-        emailNotifications,
-        smsNotifications,
-        pushNotifications,
+  // ─── Submit ────────────────────────────────────────────────────────────────
+  const handleContinue = async () => {
+    if (!isFormValid || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      // 1. Update profile → advances onboarding_step to 'completed'
+      const response = await userService.updateProfile({
+        legalName: fullName.trim(),
+        notificationBooking: emailNotifications || smsNotifications,
+        notificationPromotion: false,
+        preferredLanguage: 'en',
       });
-      // Navigate to Main App
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainApp' }],
-      });
+
+      const updatedUser = response.user;
+
+      // 2. Create vehicle record
+      if (registrationNumber.trim() && vehicleApiType && updatedUser?.id) {
+        try {
+          await api.post(`/api/vehicles/users/${updatedUser.id}/vehicles`, {
+            licensePlate: registrationNumber.trim().toUpperCase(),
+            vehicleType: vehicleApiType,
+            vehicleSize: 'medium',
+            make: registrationNumber.trim().toUpperCase(),
+            model: vehicleApiType,
+            isDefault: true,
+          });
+        } catch (vehicleErr) {
+          console.warn('[Onboarding] Vehicle creation failed:', vehicleErr);
+          // Non-fatal — user can add vehicle from Profile screen
+        }
+      }
+
+      // 3. Clear draft
+      await AsyncStorage.removeItem(DRAFT_KEY);
+
+      // 4. Update auth context → RootNavigator in App.tsx automatically switches to main stack
+      auth.updateUser(updatedUser);
+
+    } catch (err) {
+      const code = err?.code || '';
+      if (code === 'NETWORK_ERROR' || code === 'NETWORK_TIMEOUT') {
+        setSubmitError('No internet connection. Your data is saved locally — try again when online.');
+      } else if (err?.details) {
+        // Map server validation errors to fields
+        const fieldErrors = {};
+        (err.details || []).forEach((d) => {
+          if (d.field === 'legal_name') fieldErrors.fullName = d.message;
+        });
+        if (Object.keys(fieldErrors).length) {
+          setErrors((prev) => ({ ...prev, ...fieldErrors }));
+        } else {
+          setSubmitError(err?.message || 'Something went wrong. Please try again.');
+        }
+      } else {
+        setSubmitError(err?.message || 'Something went wrong. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSkip = () => {
-    Alert.alert(
+    AppAlert.alert(
       'Skip Setup',
       'You can complete your profile later from settings.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Skip', onPress: () => navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainApp' }],
-        }) },
+        {
+          text: 'Skip',
+          onPress: async () => {
+            // Skip without saving — still mark as completed so they land on home
+            try {
+              const response = await userService.updateProfile({ legalName: '', notificationBooking: true });
+              await AsyncStorage.removeItem(DRAFT_KEY);
+              // Update auth context → RootNavigator automatically switches to main stack
+              auth.updateUser(response.user);
+            } catch {
+              // If offline, force onboardingStep locally so navigation still works
+              auth.updateUser({ onboardingStep: 'completed' });
+            }
+          },
+        },
       ]
     );
   };
 
+  // ─── Render helpers ────────────────────────────────────────────────────────
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
       <View style={styles.progressBar}>
@@ -197,31 +270,18 @@ const UserOnboarding = ({ navigation }) => {
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[
-                  styles.vehicleOption,
-                  vehicleType === item.name && styles.vehicleOptionSelected,
-                ]}
+                style={[styles.vehicleOption, vehicleType === item.name && styles.vehicleOptionSelected]}
                 onPress={() => {
                   setVehicleType(item.name);
+                  setVehicleApiType(item.apiType);
                   setVehicleModalVisible(false);
                 }}
               >
-                <Icon
-                  name={item.icon}
-                  size={20}
-                  color={vehicleType === item.name ? '#FFFFFF' : '#0D7377'}
-                />
-                <Text
-                  style={[
-                    styles.vehicleOptionText,
-                    vehicleType === item.name && styles.vehicleOptionTextSelected,
-                  ]}
-                >
+                <Icon name={item.icon} size={20} color={vehicleType === item.name ? '#FFFFFF' : '#0D7377'} />
+                <Text style={[styles.vehicleOptionText, vehicleType === item.name && styles.vehicleOptionTextSelected]}>
                   {item.name}
                 </Text>
-                {vehicleType === item.name && (
-                  <Icon name="check" size={20} color="#FFFFFF" />
-                )}
+                {vehicleType === item.name && <Icon name="check" size={20} color="#FFFFFF" />}
               </TouchableOpacity>
             )}
           />
@@ -248,10 +308,7 @@ const UserOnboarding = ({ navigation }) => {
             <Icon name="image" size={24} color="#0D7377" />
             <Text style={styles.imageOptionText}>Choose from Gallery</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => setImageModalVisible(false)}
-          >
+          <TouchableOpacity style={styles.cancelButton} onPress={() => setImageModalVisible(false)}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
@@ -259,13 +316,19 @@ const UserOnboarding = ({ navigation }) => {
     </Modal>
   );
 
+  // ─── Main render ───────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Decorative Elements */}
+        {/* Decorative */}
         <View style={styles.decorativeTopRight}>
           <View style={styles.blobLarge} />
         </View>
@@ -276,12 +339,11 @@ const UserOnboarding = ({ navigation }) => {
           <Text style={styles.subtitle}>Help us personalize your experience</Text>
         </View>
 
-        {/* Progress Bar */}
         {renderProgressBar()}
 
-        {/* Profile Picture Section */}
+        {/* Profile Picture */}
         <View style={styles.profileSection}>
-          <TouchableOpacity style={styles.profileImageContainer} onPress={handleImagePicker}>
+          <TouchableOpacity style={styles.profileImageContainer} onPress={() => setImageModalVisible(true)}>
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
@@ -296,7 +358,7 @@ const UserOnboarding = ({ navigation }) => {
           <Text style={styles.uploadText}>Tap to upload photo</Text>
         </View>
 
-        {/* Full Name Input */}
+        {/* Full Name */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Full Name *</Text>
           <View style={styles.inputWrapper}>
@@ -309,45 +371,40 @@ const UserOnboarding = ({ navigation }) => {
               onChangeText={setFullName}
             />
           </View>
-          {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
+          {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
         </View>
 
-        {/* Vehicle Type Selection */}
+        {/* Vehicle Type */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Vehicle Type *</Text>
-          <TouchableOpacity
-            style={styles.selectWrapper}
-            onPress={() => setVehicleModalVisible(true)}
-          >
+          <TouchableOpacity style={styles.selectWrapper} onPress={() => setVehicleModalVisible(true)}>
             <Icon name="truck" size={18} color="#9CA3AF" style={styles.inputIcon} />
             <Text style={[styles.selectText, !vehicleType && styles.placeholderText]}>
               {vehicleType || 'Select vehicle type'}
             </Text>
             <Icon name="chevron-down" size={18} color="#9CA3AF" />
           </TouchableOpacity>
-          {errors.vehicleType && <Text style={styles.errorText}>{errors.vehicleType}</Text>}
+          {errors.vehicleType ? <Text style={styles.errorText}>{errors.vehicleType}</Text> : null}
         </View>
 
-        {/* Vehicle Registration Number */}
+        {/* Registration Number */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Vehicle Registration Number *</Text>
           <View style={styles.inputWrapper}>
             <Icon name="hash" size={18} color="#9CA3AF" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Enter registration number"
+              placeholder="e.g. KA01AB1234"
               placeholderTextColor="#9CA3AF"
               value={registrationNumber}
               onChangeText={setRegistrationNumber}
               autoCapitalize="characters"
             />
           </View>
-          {errors.registrationNumber && (
-            <Text style={styles.errorText}>{errors.registrationNumber}</Text>
-          )}
+          {errors.registrationNumber ? <Text style={styles.errorText}>{errors.registrationNumber}</Text> : null}
         </View>
 
-        {/* Location Input (Optional) */}
+        {/* Location (optional) */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Location (Optional)</Text>
           <View style={styles.inputWrapper}>
@@ -366,51 +423,29 @@ const UserOnboarding = ({ navigation }) => {
         <View style={styles.preferencesSection}>
           <Text style={styles.sectionTitle}>Communication Preferences</Text>
 
-          <TouchableOpacity
-            style={styles.preferenceItem}
-            onPress={() => setEmailNotifications(!emailNotifications)}
-          >
-            <View style={styles.preferenceInfo}>
-              <Icon name="mail" size={20} color="#0D7377" />
-              <Text style={styles.preferenceText}>Email Notifications</Text>
-            </View>
-            <View style={[styles.toggle, emailNotifications && styles.toggleActive]}>
-              <View style={[styles.toggleCircle, emailNotifications && styles.toggleCircleActive]} />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.preferenceItem}
-            onPress={() => setSmsNotifications(!smsNotifications)}
-          >
-            <View style={styles.preferenceInfo}>
-              <Icon name="message-square" size={20} color="#0D7377" />
-              <Text style={styles.preferenceText}>SMS Notifications</Text>
-            </View>
-            <View style={[styles.toggle, smsNotifications && styles.toggleActive]}>
-              <View style={[styles.toggleCircle, smsNotifications && styles.toggleCircleActive]} />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.preferenceItem}
-            onPress={() => setPushNotifications(!pushNotifications)}
-          >
-            <View style={styles.preferenceInfo}>
-              <Icon name="bell" size={20} color="#0D7377" />
-              <Text style={styles.preferenceText}>Push Notifications</Text>
-            </View>
-            <View style={[styles.toggle, pushNotifications && styles.toggleActive]}>
-              <View style={[styles.toggleCircle, pushNotifications && styles.toggleCircleActive]} />
-            </View>
-          </TouchableOpacity>
+          {[
+            { label: 'Email Notifications', icon: 'mail', value: emailNotifications, setter: setEmailNotifications },
+            { label: 'SMS Notifications', icon: 'message-square', value: smsNotifications, setter: setSmsNotifications },
+            { label: 'Push Notifications', icon: 'bell', value: pushNotifications, setter: setPushNotifications },
+          ].map(({ label, icon, value, setter }) => (
+            <TouchableOpacity
+              key={label}
+              style={styles.preferenceItem}
+              onPress={() => setter(!value)}
+            >
+              <View style={styles.preferenceInfo}>
+                <Icon name={icon} size={20} color="#0D7377" />
+                <Text style={styles.preferenceText}>{label}</Text>
+              </View>
+              <View style={[styles.toggle, value && styles.toggleActive]}>
+                <View style={[styles.toggleCircle, value && styles.toggleCircleActive]} />
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Terms Agreement */}
-        <TouchableOpacity
-          style={styles.termsContainer}
-          onPress={() => setTermsAgreed(!termsAgreed)}
-        >
+        {/* Terms */}
+        <TouchableOpacity style={styles.termsContainer} onPress={() => setTermsAgreed(!termsAgreed)}>
           <View style={[styles.checkbox, termsAgreed && styles.checkboxChecked]}>
             {termsAgreed && <Icon name="check" size={14} color="#FFFFFF" />}
           </View>
@@ -419,345 +454,139 @@ const UserOnboarding = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
 
+        {/* Submit error */}
+        {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
+
         {/* Buttons */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
-            style={[styles.continueButton, !isFormValid && styles.continueButtonDisabled]}
+            style={[styles.continueButton, (!isFormValid || isSubmitting) && styles.continueButtonDisabled]}
             onPress={handleContinue}
-            disabled={!isFormValid}
+            disabled={!isFormValid || isSubmitting}
+            activeOpacity={0.8}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.continueButtonText}>Continue</Text>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+          <TouchableOpacity style={styles.skipButton} onPress={handleSkip} disabled={isSubmitting}>
             <Text style={styles.skipButtonText}>Skip for now</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Modals */}
       {renderVehicleModal()}
       {renderImagePickerModal()}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  decorativeTopRight: {
-    position: 'absolute',
-    top: -40,
-    right: -40,
-  },
-  blobLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E8F5F4',
-  },
-  header: {
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  progressContainer: {
-    marginBottom: 24,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: '#E8F5F4',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#0D7377',
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 8,
-    textAlign: 'right',
-  },
-  profileSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  profileImageContainer: {
-    position: 'relative',
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
+  decorativeTopRight: { position: 'absolute', top: -40, right: -40 },
+  blobLarge: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#E8F5F4' },
+  header: { marginTop: 20, marginBottom: 20 },
+  title: { fontSize: 26, fontWeight: '700', color: '#1A1A2E', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: '#6B7280' },
+  progressContainer: { marginBottom: 24 },
+  progressBar: { height: 6, backgroundColor: '#E8F5F4', borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: '#0D7377', borderRadius: 3 },
+  progressText: { fontSize: 12, color: '#6B7280', marginTop: 8, textAlign: 'right' },
+  profileSection: { alignItems: 'center', marginBottom: 24 },
+  profileImageContainer: { position: 'relative' },
+  profileImage: { width: 100, height: 100, borderRadius: 50 },
   profilePlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
+    width: 100, height: 100, borderRadius: 50, backgroundColor: '#F3F4F6',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed',
   },
   cameraIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    position: 'absolute', bottom: 0, right: 0,
+    width: 32, height: 32, borderRadius: 16,
     backgroundColor: '#0D7377',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#FFFFFF',
   },
-  uploadText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 8,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A2E',
-    marginBottom: 8,
-  },
+  uploadText: { fontSize: 12, color: '#6B7280', marginTop: 8 },
+  inputGroup: { marginBottom: 16 },
+  inputLabel: { fontSize: 14, fontWeight: '500', color: '#1A1A2E', marginBottom: 8 },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F3F4F6', borderRadius: 12, paddingHorizontal: 16,
   },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: '#1A1A2E',
-  },
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, paddingVertical: 14, fontSize: 15, color: '#1A1A2E' },
   selectWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F3F4F6', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
   },
-  selectText: {
-    flex: 1,
-    fontSize: 15,
-    color: '#1A1A2E',
-  },
-  placeholderText: {
-    color: '#9CA3AF',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
-  },
-  preferencesSection: {
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A2E',
-    marginBottom: 16,
-  },
+  selectText: { flex: 1, fontSize: 15, color: '#1A1A2E' },
+  placeholderText: { color: '#9CA3AF' },
+  errorText: { fontSize: 12, color: '#EF4444', marginTop: 4 },
+  preferencesSection: { marginTop: 8, marginBottom: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A1A2E', marginBottom: 16 },
   preferenceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
-  preferenceInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  preferenceText: {
-    fontSize: 14,
-    color: '#1A1A2E',
-    marginLeft: 12,
-  },
-  toggle: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E5E7EB',
-    padding: 2,
-  },
-  toggleActive: {
-    backgroundColor: '#0D7377',
-  },
-  toggleCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-  },
-  toggleCircleActive: {
-    transform: [{ translateX: 20 }],
-  },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 24,
-  },
+  preferenceInfo: { flexDirection: 'row', alignItems: 'center' },
+  preferenceText: { fontSize: 14, color: '#1A1A2E', marginLeft: 12 },
+  toggle: { width: 44, height: 24, borderRadius: 12, backgroundColor: '#E5E7EB', padding: 2 },
+  toggleActive: { backgroundColor: '#0D7377' },
+  toggleCircle: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFFFF' },
+  toggleCircleActive: { transform: [{ translateX: 20 }] },
+  termsContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 8 },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#0D7377',
-    borderRadius: 4,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 20, height: 20, borderWidth: 2, borderColor: '#0D7377',
+    borderRadius: 4, marginRight: 12, justifyContent: 'center', alignItems: 'center',
   },
-  checkboxChecked: {
-    backgroundColor: '#0D7377',
-  },
-  termsText: {
-    fontSize: 14,
-    color: '#6B7280',
-    flex: 1,
-  },
-  termsLink: {
-    color: '#0D7377',
-    fontWeight: '500',
-  },
-  buttonsContainer: {
-    gap: 12,
-  },
+  checkboxChecked: { backgroundColor: '#0D7377' },
+  termsText: { fontSize: 14, color: '#6B7280', flex: 1 },
+  termsLink: { color: '#0D7377', fontWeight: '500' },
+  submitError: { fontSize: 13, color: '#EF4444', marginBottom: 12, textAlign: 'center' },
+  buttonsContainer: { gap: 12, marginTop: 16 },
   continueButton: {
-    backgroundColor: '#0D7377',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
+    backgroundColor: '#0D7377', borderRadius: 12, paddingVertical: 16,
+    alignItems: 'center', justifyContent: 'center', minHeight: 52,
   },
-  continueButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  continueButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  skipButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    color: '#6B7280',
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  continueButtonDisabled: { backgroundColor: '#9CA3AF' },
+  continueButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  skipButton: { paddingVertical: 12, alignItems: 'center' },
+  skipButtonText: { color: '#6B7280', fontSize: 14, fontWeight: '500' },
   // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '60%',
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingTop: 20, paddingBottom: 40, maxHeight: '60%',
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 24, marginBottom: 16,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A2E',
-  },
+  modalTitle: { fontSize: 18, fontWeight: '600', color: '#1A1A2E' },
   vehicleOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: 24,
+    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
-  vehicleOptionSelected: {
-    backgroundColor: '#0D7377',
-  },
-  vehicleOptionText: {
-    fontSize: 15,
-    color: '#1A1A2E',
-    marginLeft: 12,
-    flex: 1,
-  },
-  vehicleOptionTextSelected: {
-    color: '#FFFFFF',
-  },
+  vehicleOptionSelected: { backgroundColor: '#0D7377' },
+  vehicleOptionText: { fontSize: 15, color: '#1A1A2E', marginLeft: 12, flex: 1 },
+  vehicleOptionTextSelected: { color: '#FFFFFF' },
   imageModalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24,
   },
   imageOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
-  imageOptionText: {
-    fontSize: 15,
-    color: '#1A1A2E',
-    marginLeft: 16,
-  },
-  cancelButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
+  imageOptionText: { fontSize: 15, color: '#1A1A2E', marginLeft: 16 },
+  cancelButton: { marginTop: 16, paddingVertical: 12, alignItems: 'center' },
+  cancelButtonText: { fontSize: 15, color: '#6B7280', fontWeight: '500' },
 });
 
 export default UserOnboarding;

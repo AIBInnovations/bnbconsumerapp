@@ -4,8 +4,10 @@ import android.app.Application
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
-import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
+import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.facebook.react.soloader.OpenSourceMergedSoMapping
+import com.facebook.soloader.SoLoader
 
 class MainApplication : Application(), ReactApplication {
 
@@ -22,6 +24,10 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
-    loadReactNative(this)
+    // Canonical RN 0.82+ entry point. The previous template used
+    // `ReactNativeApplicationEntryPoint.loadReactNative(this)` which is not
+    // a real RN API in this version and fails to compile from a clean cache.
+    SoLoader.init(this, OpenSourceMergedSoMapping)
+    load()
   }
 }

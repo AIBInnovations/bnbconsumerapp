@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,13 @@ import {
   Platform,
   Dimensions,
   Modal,
+  ActivityIndicator,
+  TextInput,
+  Image,
 } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
+import * as bookingService from '../../services/bookingService';
+import * as vehicleService from '../../services/vehicleService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -26,12 +32,9 @@ const durationOptions = [
   { id: 'monthly', label: 'Monthly', icon: 'calendar' },
 ];
 
-// Payment methods
-const paymentMethods = [
-  { id: 'card', label: 'Credit/Debit Card', icon: 'credit-card', brand: 'Visa •••• 4242' },
-  { id: 'paypal', label: 'PayPal', icon: 'paypal', brand: null },
-  { id: 'apple', label: 'Apple Pay', icon: 'apple', brand: null },
-  { id: 'google', label: 'Google Pay', icon: 'google', brand: null },
+const PAYMENT_OPTIONS = [
+  { id: 'cash', label: 'Cash', subtitle: 'Pay at the spot', icon: 'dollar-sign' },
+  { id: 'online', label: 'Online', subtitle: 'Confirm instantly', icon: 'globe' },
 ];
 
 // Generate time slots
@@ -65,10 +68,42 @@ const generateDates = () => {
   return dates;
 };
 
+const ADD_VEHICLE_TYPES = [
+  { apiType: 'car', label: 'Car' },
+  { apiType: 'suv', label: 'SUV' },
+  { apiType: 'van', label: 'Van' },
+  { apiType: 'motorcycle', label: 'Moto' },
+  { apiType: 'truck', label: 'Truck' },
+];
+
+const SPACE_TYPE_ICONS = {
+  garage: 'garage',
+  covered: 'home-roof',
+  outdoor: 'weather-sunny',
+  driveway: 'road',
+  carport: 'car-side',
+  street: 'road-variant',
+};
+const SPACE_TYPE_LABELS = {
+  garage: 'Garage',
+  covered: 'Covered',
+  outdoor: 'Outdoor',
+  driveway: 'Driveway',
+  carport: 'Carport',
+  street: 'Street',
+};
+
 const ParkingDetailsPage = ({ navigation, route }) => {
   const { parkingData } = route.params || {};
   const scrollViewRef = useRef(null);
   const dates = useMemo(() => generateDates(), []);
+  const auth = useAuth();
+
+  // Property mode: parkingData.spaces[] was passed from grouped homepage
+  const isPropertyMode = Array.isArray(parkingData?.spaces) && parkingData.spaces.length > 0;
+  const [selectedSpace, setSelectedSpace] = useState(
+    isPropertyMode && parkingData.spaces.length === 1 ? parkingData.spaces[0] : null
+  );
 
   // State
   const [isFavorite, setIsFavorite] = useState(false);
@@ -83,6 +118,31 @@ const ParkingDetailsPage = ({ navigation, route }) => {
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [timeModalType, setTimeModalType] = useState('start');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Booking state
+  const [userVehicles, setUserVehicles] = useState([]);
+  const [bookingError, setBookingError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [confirmedBooking, setConfirmedBooking] = useState(null);
+
+  // Add vehicle inline modal
+  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+  const [addVehicleReg, setAddVehicleReg] = useState('');
+  const [addVehicleType, setAddVehicleType] = useState('');
+  const [addVehicleSaving, setAddVehicleSaving] = useState(false);
+  const [addVehicleError, setAddVehicleError] = useState('');
+
+  // Online payment confirm modal
+  const [showOnlineConfirmModal, setShowOnlineConfirmModal] = useState(false);
+
+  // Load user's vehicles so we can use the default one when booking
+  useEffect(() => {
+    const userId = auth?.user?.id;
+    if (!userId) return;
+    bookingService.getUserVehicles(userId)
+      .then((res) => setUserVehicles(res.vehicles || []))
+      .catch(() => setUserVehicles([]));
+  }, [auth?.user?.id]);
 
   // Default parking data
   const defaultParkingData = {
@@ -112,14 +172,26 @@ const ParkingDetailsPage = ({ navigation, route }) => {
       rating: 4.8,
       responseTime: '< 1 hour',
     },
-    images: [1, 2, 3, 4],
+    images: [],
     serviceFee: 1.50,
     taxRate: 0.08,
   };
 
+  const resolvedImages = (() => {
+    const candidates = [
+      selectedSpace?.spaceImages,
+      parkingData?.spaceImages,
+      parkingData?.propertyImages,
+      parkingData?.images,
+    ];
+    const hit = candidates.find((arr) => Array.isArray(arr) && arr.length > 0);
+    return (hit || []).filter((u) => typeof u === 'string' && u.length > 0);
+  })();
+
   const parking = {
     ...defaultParkingData,
     ...parkingData,
+    images: resolvedImages,
     owner: {
       ...defaultParkingData.owner,
       ...(parkingData?.owner || {}),
@@ -130,30 +202,32 @@ const ParkingDetailsPage = ({ navigation, route }) => {
     },
   };
 
-  // Calculate pricing based on duration
+  // Calculate pricing based on duration — uses selectedSpace when available
   const calculatePricing = useMemo(() => {
+    // In property mode, use the selected space's prices; otherwise fall back to parking (single-space)
+    const priceSource = selectedSpace ?? parking;
     let basePrice = 0;
     let durationText = '';
 
     switch (selectedDuration) {
       case 'hourly':
-        basePrice = parking.pricePerHour * selectedHours;
+        basePrice = (priceSource.pricePerHour || parking.pricePerHour) * selectedHours;
         durationText = `${selectedHours} hour${selectedHours > 1 ? 's' : ''}`;
         break;
       case 'daily':
-        basePrice = parking.pricePerDay || parking.pricePerHour * 8;
+        basePrice = priceSource.pricePerDay || priceSource.pricePerHour * 8 || parking.pricePerHour * 8;
         durationText = '1 day';
         break;
       case 'weekly':
-        basePrice = parking.pricePerWeek || parking.pricePerHour * 56;
+        basePrice = priceSource.pricePerWeek || priceSource.pricePerMonth || priceSource.pricePerHour * 56 || parking.pricePerHour * 56;
         durationText = '1 week';
         break;
       case 'monthly':
-        basePrice = parking.pricePerMonth || parking.pricePerHour * 240;
+        basePrice = priceSource.pricePerMonth || priceSource.pricePerHour * 240 || parking.pricePerHour * 240;
         durationText = '1 month';
         break;
       default:
-        basePrice = parking.pricePerHour;
+        basePrice = priceSource.pricePerHour || parking.pricePerHour;
     }
 
     const serviceFee = parking.serviceFee || 1.50;
@@ -167,12 +241,13 @@ const ParkingDetailsPage = ({ navigation, route }) => {
       total: total.toFixed(2),
       durationText,
     };
-  }, [selectedDuration, selectedHours, parking]);
+  }, [selectedDuration, selectedHours, parking, selectedSpace]);
 
   // Validation
   const isFormValid = useMemo(() => {
-    return selectedPaymentMethod !== null && agreedToTerms && selectedDate !== null;
-  }, [selectedPaymentMethod, agreedToTerms, selectedDate]);
+    const spaceSelected = !isPropertyMode || selectedSpace !== null;
+    return selectedPaymentMethod !== null && agreedToTerms && selectedDate !== null && spaceSelected;
+  }, [selectedPaymentMethod, agreedToTerms, selectedDate, isPropertyMode, selectedSpace]);
 
   // Handle share
   const handleShare = async () => {
@@ -198,25 +273,139 @@ const ParkingDetailsPage = ({ navigation, route }) => {
     Linking.openURL(url);
   };
 
-  // Handle booking
-  const handleBookNow = async () => {
-    if (!isFormValid) return;
+  // Build ISO start/end times from the picker selections
+  const buildBookingTimes = useCallback(() => {
+    const [startH] = selectedStartTime.split(':').map(Number);
 
+    const start = new Date(selectedDate);
+    start.setHours(startH, 0, 0, 0);
+
+    let end;
+    if (selectedDuration === 'hourly') {
+      end = new Date(start);
+      end.setHours(startH + selectedHours, 0, 0, 0);
+    } else if (selectedDuration === 'daily') {
+      end = new Date(start);
+      end.setDate(end.getDate() + 1);
+    } else if (selectedDuration === 'weekly') {
+      end = new Date(start);
+      end.setDate(end.getDate() + 7);
+    } else {
+      // monthly
+      end = new Date(start);
+      end.setMonth(end.getMonth() + 1);
+    }
+
+    return { startTime: start.toISOString(), endTime: end.toISOString() };
+  }, [selectedDate, selectedStartTime, selectedHours, selectedDuration]);
+
+  // Core booking logic — call this with a resolved vehicle object
+  const doBooking = async (vehicle) => {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setBookingError('');
+    const spaceId = selectedSpace?.id ?? parking.id;
+    try {
+      const { startTime, endTime } = buildBookingTimes();
+      const response = await bookingService.createBooking(
+        spaceId,
+        startTime,
+        endTime,
+        vehicle.id,
+        selectedPaymentMethod,
+      );
+      setShowOnlineConfirmModal(false);
+      setConfirmedBooking(response.booking);
+      setShowSuccessModal(true);
+    } catch (err) {
+      const code = err?.code || '';
+      if (code === 'BIZ_CONFLICT') {
+        setBookingError('This space is already booked for the selected time. Please choose a different time.');
+      } else if (code === 'BIZ_VALIDATION' && err?.message?.includes('past')) {
+        setBookingError('Start time cannot be in the past. Please select a future time.');
+      } else if (code === 'NETWORK_ERROR' || code === 'NETWORK_TIMEOUT') {
+        setBookingError('No internet connection. Please try again.');
+      } else {
+        setBookingError(err?.message || 'Booking failed. Please try again.');
+      }
+    } finally {
       setIsLoading(false);
-      navigation.navigate('BookingConfirmation', {
-        parkingData: parking,
-        duration: selectedDuration,
-        hours: selectedHours,
-        date: selectedDate.toISOString(),
-        startTime: selectedStartTime,
-        endTime: selectedEndTime,
-        pricing: calculatePricing,
-        paymentMethod: selectedPaymentMethod,
+    }
+  };
+
+  // Resolve vehicle then route by payment method
+  const handleBookNow = async () => {
+    if (!isFormValid || isLoading) return;
+
+    // In property mode, user must select a specific space first
+    if (isPropertyMode && !selectedSpace) {
+      setBookingError('Please select a parking spot below before booking.');
+      return;
+    }
+
+    // Must have at least one registered vehicle — show inline modal if not
+    const vehicle = userVehicles.find((v) => v.isDefault) || userVehicles[0];
+    if (!vehicle) {
+      setAddVehicleReg('');
+      setAddVehicleType('');
+      setAddVehicleError('');
+      setShowAddVehicleModal(true);
+      return;
+    }
+
+    if (selectedPaymentMethod === 'online') {
+      // Show price breakdown confirm modal
+      setBookingError('');
+      setShowOnlineConfirmModal(true);
+    } else {
+      // Cash — book directly
+      await doBooking(vehicle);
+    }
+  };
+
+  // Called from inside the online confirm modal
+  const handleOnlineConfirm = async () => {
+    const vehicle = userVehicles.find((v) => v.isDefault) || userVehicles[0];
+    if (vehicle) {
+      await doBooking(vehicle);
+    }
+  };
+
+  // Save new vehicle then auto-proceed to booking
+  const handleAddVehicleSave = async () => {
+    if (!addVehicleReg.trim()) {
+      setAddVehicleError('Registration number is required.');
+      return;
+    }
+    if (!addVehicleType) {
+      setAddVehicleError('Please select a vehicle type.');
+      return;
+    }
+    const userId = auth?.user?.id;
+    if (!userId) return;
+    setAddVehicleSaving(true);
+    setAddVehicleError('');
+    try {
+      const reg = addVehicleReg.trim().toUpperCase();
+      await vehicleService.addVehicle(userId, {
+        licensePlate: reg,
+        vehicleType: addVehicleType,
+        make: reg,
+        model: addVehicleType,
+        isDefault: true,
       });
-    }, 1500);
+      const res = await vehicleService.getUserVehicles(userId);
+      const vehicles = res.vehicles || [];
+      setUserVehicles(vehicles);
+      setShowAddVehicleModal(false);
+      const vehicle = vehicles.find((v) => v.isDefault) || vehicles[0];
+      if (vehicle) {
+        await doBooking(vehicle);
+      }
+    } catch (err) {
+      setAddVehicleError(err?.message || 'Failed to add vehicle. Please try again.');
+    } finally {
+      setAddVehicleSaving(false);
+    }
   };
 
   // Open time picker modal
@@ -278,7 +467,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -313,36 +502,50 @@ const ParkingDetailsPage = ({ navigation, route }) => {
         {/* Image Gallery */}
         <View style={styles.imageGallery}>
           <View style={styles.mainImageContainer}>
-            <View style={styles.imagePlaceholder}>
-              <MaterialIcon name="parking" size={60} color="#1A73E8" />
-              <Text style={styles.imagePlaceholderText}>{parking.name}</Text>
-            </View>
+            {parking.images.length > 0 ? (
+              <Image
+                source={{ uri: parking.images[Math.min(selectedImageIndex, parking.images.length - 1)] }}
+                style={styles.mainImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <MaterialIcon name="parking" size={60} color="#1A73E8" />
+                <Text style={styles.imagePlaceholderText}>{parking.name}</Text>
+              </View>
+            )}
             <View style={styles.availabilityBadge}>
               <View style={styles.availabilityDot} />
-              <Text style={styles.availabilityText}>{parking.available} spots available</Text>
+              <Text style={styles.availabilityText}>
+                {selectedSpace
+                  ? `${Math.max(0, (selectedSpace.totalSpots || 1) - (selectedSpace.activeBookingCount || 0))} spot${(selectedSpace.totalSpots || 1) > 1 ? 's' : ''} available`
+                  : `${parking.available} spot${parking.available !== 1 ? 's' : ''} available`}
+              </Text>
             </View>
-            {/* Image Counter */}
-            <View style={styles.imageCounter}>
-              <Icon name="image" size={14} color="#FFFFFF" />
-              <Text style={styles.imageCounterText}>{selectedImageIndex + 1}/{parking.images.length}</Text>
-            </View>
+            {parking.images.length > 0 && (
+              <View style={styles.imageCounter}>
+                <Icon name="image" size={14} color="#FFFFFF" />
+                <Text style={styles.imageCounterText}>{selectedImageIndex + 1}/{parking.images.length}</Text>
+              </View>
+            )}
           </View>
 
-          {/* Thumbnail Row */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailRow}>
-            {parking.images.map((_, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.thumbnail,
-                  selectedImageIndex === index && styles.thumbnailActive
-                ]}
-                onPress={() => setSelectedImageIndex(index)}
-              >
-                <MaterialIcon name="image" size={24} color={selectedImageIndex === index ? '#1A73E8' : '#9CA3AF'} />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {parking.images.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailRow}>
+              {parking.images.map((uri, index) => (
+                <TouchableOpacity
+                  key={`${uri}-${index}`}
+                  style={[
+                    styles.thumbnail,
+                    selectedImageIndex === index && styles.thumbnailActive,
+                  ]}
+                  onPress={() => setSelectedImageIndex(index)}
+                >
+                  <Image source={{ uri }} style={styles.thumbnailImage} resizeMode="cover" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         {/* Parking Space Details */}
@@ -357,7 +560,13 @@ const ParkingDetailsPage = ({ navigation, route }) => {
               </View>
             </View>
             <View style={styles.priceTag}>
-              <Text style={styles.priceAmount}>₹{parking.pricePerHour}</Text>
+              <Text style={styles.priceAmount}>
+                {isPropertyMode && !selectedSpace
+                  ? parking.minPrice === parking.maxPrice
+                    ? `₹${parking.minPrice}`
+                    : `₹${parking.minPrice}–₹${parking.maxPrice}`
+                  : `₹${selectedSpace?.pricePerHour ?? parking.pricePerHour}`}
+              </Text>
               <Text style={styles.priceUnit}>/hr</Text>
             </View>
           </View>
@@ -425,6 +634,89 @@ const ParkingDetailsPage = ({ navigation, route }) => {
             })}
           </View>
         </View>
+
+        {/* Space Selector — shown when multiple spaces exist for this property */}
+        {isPropertyMode && parkingData.spaces.length > 1 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Choose Your Spot</Text>
+            <Text style={styles.spaceSelectorSubtitle}>
+              {parkingData.spaces.length} space types available at this location
+            </Text>
+            {parkingData.spaces.map((space) => {
+              const spaceAvailable = Math.max(0, (space.totalSpots || 1) - (space.activeBookingCount || 0));
+              const isFullyBooked = spaceAvailable === 0;
+              const isSelected = selectedSpace?.id === space.id;
+
+              return (
+                <TouchableOpacity
+                  key={space.id}
+                  style={[
+                    styles.spaceCard,
+                    isSelected && styles.spaceCardSelected,
+                    isFullyBooked && styles.spaceCardDisabled,
+                  ]}
+                  onPress={() => {
+                    if (!isFullyBooked) setSelectedSpace(isSelected ? null : space);
+                  }}
+                  activeOpacity={isFullyBooked ? 1 : 0.8}
+                >
+                  <View style={styles.spaceCardLeft}>
+                    <View style={[styles.spaceIconCircle, isSelected && { backgroundColor: '#1A73E8' }]}>
+                      <MaterialIcon
+                        name={SPACE_TYPE_ICONS[space.spaceType] || 'parking'}
+                        size={22}
+                        color={isSelected ? '#FFFFFF' : '#1A73E8'}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.spaceCardBody}>
+                    <View style={styles.spaceCardHeader}>
+                      <Text style={[styles.spaceCardType, isFullyBooked && { color: '#9CA3AF' }]}>
+                        {SPACE_TYPE_LABELS[space.spaceType] || space.spaceType}
+                      </Text>
+                      <Text style={[styles.spaceCardPrice, isFullyBooked && { color: '#9CA3AF' }]}>
+                        ₹{space.pricePerHour}/hr
+                      </Text>
+                    </View>
+                    <View style={styles.spaceCardMeta}>
+                      {isFullyBooked ? (
+                        <View style={styles.spaceFullBadge}>
+                          <Text style={styles.spaceFullText}>Fully Booked</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.spaceAvailableText}>
+                          {spaceAvailable} of {space.totalSpots || 1} spot{(space.totalSpots || 1) > 1 ? 's' : ''} available
+                        </Text>
+                      )}
+                      {space.hasEvCharging && (
+                        <View style={styles.spaceBadge}>
+                          <MaterialIcon name="ev-station" size={12} color="#10B981" />
+                          <Text style={styles.spaceBadgeText}>EV</Text>
+                        </View>
+                      )}
+                      {space.bookingMode === 'request' && (
+                        <View style={[styles.spaceBadge, { backgroundColor: '#FEF3C7' }]}>
+                          <Text style={[styles.spaceBadgeText, { color: '#92400E' }]}>On Request</Text>
+                        </View>
+                      )}
+                    </View>
+                    {(space.allowedVehicleTypes || []).length > 0 && (
+                      <Text style={styles.spaceVehicleTypes} numberOfLines={1}>
+                        {(space.allowedVehicleTypes || []).slice(0, 3).join(', ')}
+                        {(space.allowedVehicleTypes || []).length > 3 ? ' +more' : ''}
+                      </Text>
+                    )}
+                  </View>
+                  {isSelected && (
+                    <View style={styles.spaceCheckmark}>
+                      <Icon name="check-circle" size={22} color="#1A73E8" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
         {/* Date Selection */}
         <View style={styles.section}>
@@ -582,49 +874,29 @@ const ParkingDetailsPage = ({ navigation, route }) => {
         {/* Payment Method */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
-          <View style={styles.paymentMethodsContainer}>
-            {paymentMethods.map((method) => (
-              <TouchableOpacity
-                key={method.id}
-                style={[
-                  styles.paymentMethodCard,
-                  selectedPaymentMethod === method.id && styles.paymentMethodCardActive,
-                ]}
-                onPress={() => setSelectedPaymentMethod(method.id)}
-              >
-                <View style={styles.paymentMethodIcon}>
-                  <Icon
-                    name={method.icon}
-                    size={24}
-                    color={selectedPaymentMethod === method.id ? '#1A73E8' : '#6B7280'}
-                  />
-                </View>
-                <View style={styles.paymentMethodInfo}>
-                  <Text style={[
-                    styles.paymentMethodLabel,
-                    selectedPaymentMethod === method.id && styles.paymentMethodLabelActive,
-                  ]}>
-                    {method.label}
+          <View style={styles.paymentOptionsRow}>
+            {PAYMENT_OPTIONS.map((opt) => {
+              const active = selectedPaymentMethod === opt.id;
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[styles.paymentOptionCard, active && styles.paymentOptionCardActive]}
+                  onPress={() => setSelectedPaymentMethod(opt.id)}
+                >
+                  {active && (
+                    <View style={styles.paymentOptionCheckBadge}>
+                      <Icon name="check-circle" size={16} color="#1A73E8" />
+                    </View>
+                  )}
+                  <Icon name={opt.icon} size={30} color={active ? '#1A73E8' : '#6B7280'} />
+                  <Text style={[styles.paymentOptionLabel, active && styles.paymentOptionLabelActive]}>
+                    {opt.label}
                   </Text>
-                  {method.brand && (
-                    <Text style={styles.paymentMethodBrand}>{method.brand}</Text>
-                  )}
-                </View>
-                <View style={[
-                  styles.paymentMethodRadio,
-                  selectedPaymentMethod === method.id && styles.paymentMethodRadioActive,
-                ]}>
-                  {selectedPaymentMethod === method.id && (
-                    <View style={styles.paymentMethodRadioDot} />
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <Text style={styles.paymentOptionSubtitle}>{opt.subtitle}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          <TouchableOpacity style={styles.addPaymentButton}>
-            <Icon name="plus-circle" size={20} color="#1A73E8" />
-            <Text style={styles.addPaymentText}>Add New Payment Method</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Location Map */}
@@ -698,27 +970,219 @@ const ParkingDetailsPage = ({ navigation, route }) => {
       <View style={styles.bottomBar}>
         <View style={styles.bottomPriceContainer}>
           <Text style={styles.bottomPriceLabel}>Total</Text>
-          <Text style={styles.bottomPriceValue}>₹{calculatePricing.total}</Text>
-          <Text style={styles.bottomPriceDuration}>{calculatePricing.durationText}</Text>
+          {isPropertyMode && !selectedSpace ? (
+            <Text style={[styles.bottomPriceValue, { fontSize: 13, color: '#6B7280' }]}>
+              Select a spot
+            </Text>
+          ) : (
+            <>
+              <Text style={styles.bottomPriceValue}>₹{calculatePricing.total}</Text>
+              <Text style={styles.bottomPriceDuration}>{calculatePricing.durationText}</Text>
+            </>
+          )}
         </View>
         <TouchableOpacity
           style={[
             styles.bookButton,
-            !isFormValid && styles.bookButtonDisabled,
+            (!isFormValid || isLoading) && styles.bookButtonDisabled,
           ]}
           onPress={handleBookNow}
           disabled={!isFormValid || isLoading}
         >
           {isLoading ? (
-            <Text style={styles.bookButtonText}>Processing...</Text>
+            <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <>
-              <Text style={styles.bookButtonText}>Book Now</Text>
+              <Text style={styles.bookButtonText}>
+                {isPropertyMode && !selectedSpace ? 'Select a Spot' : 'Book Now'}
+              </Text>
               <Icon name="arrow-right" size={20} color="#FFFFFF" />
             </>
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Booking error shown above the bottom bar */}
+      {bookingError ? (
+        <View style={styles.bookingErrorBanner}>
+          <Text style={styles.bookingErrorText}>{bookingError}</Text>
+        </View>
+      ) : null}
+
+      {/* Booking Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.successModalContent}>
+            <View style={styles.successIconContainer}>
+              <Icon name="check-circle" size={56} color="#10B981" />
+            </View>
+            <Text style={styles.successTitle}>Booking Confirmed!</Text>
+            {confirmedBooking?.bookingNumber ? (
+              <Text style={styles.successBookingNumber}>
+                Booking #{confirmedBooking.bookingNumber}
+              </Text>
+            ) : null}
+            <Text style={styles.successSubtitle}>
+              Your parking space has been reserved.{'\n'}
+              {confirmedBooking?.bookingMode === 'request'
+                ? 'The owner will confirm your request shortly.'
+                : 'You\'re all set — see you there!'}
+            </Text>
+            <TouchableOpacity
+              style={styles.successButton}
+              onPress={() => {
+                setShowSuccessModal(false);
+                navigation.goBack();
+              }}
+            >
+              <Text style={styles.successButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Online Payment Confirm Modal */}
+      <Modal
+        visible={showOnlineConfirmModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowOnlineConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.onlineConfirmModalContent}>
+            <View style={styles.onlineConfirmHeader}>
+              <Text style={styles.onlineConfirmTitle}>Confirm Booking</Text>
+              <TouchableOpacity onPress={() => setShowOnlineConfirmModal(false)}>
+                <Icon name="x" size={24} color="#1A1A2E" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Price breakdown */}
+            <View style={styles.confirmBreakdownCard}>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceRowLabel}>
+                  Base Price ({calculatePricing.durationText})
+                </Text>
+                <Text style={styles.priceRowValue}>₹{calculatePricing.basePrice}</Text>
+              </View>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceRowLabel}>Service Fee</Text>
+                <Text style={styles.priceRowValue}>₹{calculatePricing.serviceFee}</Text>
+              </View>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceRowLabel}>Tax</Text>
+                <Text style={styles.priceRowValue}>₹{calculatePricing.tax}</Text>
+              </View>
+              <View style={styles.priceDivider} />
+              <View style={styles.priceRowTotal}>
+                <Text style={styles.priceTotalLabel}>Total</Text>
+                <Text style={styles.priceTotalValue}>₹{calculatePricing.total}</Text>
+              </View>
+            </View>
+
+            <View style={styles.onlineConfirmNote}>
+              <Icon name="info" size={13} color="#6B7280" />
+              <Text style={styles.onlineConfirmNoteText}>
+                Online payment gateway coming soon. Your booking will be confirmed directly.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.addVehicleSaveButton, isLoading && styles.bookButtonDisabled]}
+              onPress={handleOnlineConfirm}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.addVehicleSaveText}>
+                  Confirm & Book  ·  ₹{calculatePricing.total}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Vehicle Modal */}
+      <Modal
+        visible={showAddVehicleModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddVehicleModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.addVehicleModalContent}>
+            <View style={styles.addVehicleHeader}>
+              <Text style={styles.addVehicleTitle}>Add a Vehicle</Text>
+              <TouchableOpacity onPress={() => setShowAddVehicleModal(false)}>
+                <Icon name="x" size={24} color="#1A1A2E" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.addVehicleSubtitle}>
+              You need a registered vehicle to make a booking.
+            </Text>
+
+            <Text style={styles.addVehicleLabel}>Registration Number</Text>
+            <TextInput
+              style={styles.addVehicleInput}
+              placeholder="e.g. MH12AB1234"
+              placeholderTextColor="#9CA3AF"
+              value={addVehicleReg}
+              onChangeText={(v) => setAddVehicleReg(v.toUpperCase())}
+              autoCapitalize="characters"
+              returnKeyType="done"
+            />
+
+            <Text style={styles.addVehicleLabel}>Vehicle Type</Text>
+            <View style={styles.vehicleTypePills}>
+              {ADD_VEHICLE_TYPES.map((vt) => (
+                <TouchableOpacity
+                  key={vt.apiType}
+                  style={[
+                    styles.vehicleTypePill,
+                    addVehicleType === vt.apiType && styles.vehicleTypePillSelected,
+                  ]}
+                  onPress={() => setAddVehicleType(vt.apiType)}
+                >
+                  <Text
+                    style={[
+                      styles.vehicleTypePillText,
+                      addVehicleType === vt.apiType && styles.vehicleTypePillTextSelected,
+                    ]}
+                  >
+                    {vt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {addVehicleError ? (
+              <Text style={styles.addVehicleError}>{addVehicleError}</Text>
+            ) : null}
+
+            <TouchableOpacity
+              style={[
+                styles.addVehicleSaveButton,
+                addVehicleSaving && styles.bookButtonDisabled,
+              ]}
+              onPress={handleAddVehicleSave}
+              disabled={addVehicleSaving}
+            >
+              {addVehicleSaving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.addVehicleSaveText}>Save & Book</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Time Picker Modal */}
       <Modal
@@ -809,6 +1273,10 @@ const styles = StyleSheet.create({
     height: 220,
     position: 'relative',
   },
+  mainImage: {
+    width: '100%',
+    height: '100%',
+  },
   imagePlaceholder: {
     flex: 1,
     justifyContent: 'center',
@@ -879,6 +1347,11 @@ const styles = StyleSheet.create({
   thumbnailActive: {
     borderColor: '#1A73E8',
     backgroundColor: '#EBF5FF',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
   },
 
   // Sections
@@ -1222,82 +1695,87 @@ const styles = StyleSheet.create({
     color: '#1A73E8',
   },
 
-  // Payment Methods
-  paymentMethodsContainer: {
-    gap: 10,
-  },
-  paymentMethodCard: {
+  // Payment Options (Cash / Online)
+  paymentOptionsRow: {
     flexDirection: 'row',
+    gap: 12,
+  },
+  paymentOptionCard: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 12,
     backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: 'transparent',
+    position: 'relative',
   },
-  paymentMethodCardActive: {
+  paymentOptionCardActive: {
     borderColor: '#1A73E8',
     backgroundColor: '#EBF5FF',
   },
-  paymentMethodIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+  paymentOptionCheckBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
   },
-  paymentMethodInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  paymentMethodLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+  paymentOptionLabel: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1A1A2E',
+    marginTop: 10,
   },
-  paymentMethodLabelActive: {
+  paymentOptionLabelActive: {
     color: '#1A73E8',
   },
-  paymentMethodBrand: {
+  paymentOptionSubtitle: {
     fontSize: 12,
     color: '#6B7280',
-    marginTop: 2,
+    marginTop: 4,
+    textAlign: 'center',
   },
-  paymentMethodRadio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    justifyContent: 'center',
-    alignItems: 'center',
+
+  // Online confirm modal
+  onlineConfirmModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 36,
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
   },
-  paymentMethodRadioActive: {
-    borderColor: '#1A73E8',
-  },
-  paymentMethodRadioDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#1A73E8',
-  },
-  addPaymentButton: {
+  onlineConfirmHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#1A73E8',
-    borderRadius: 12,
-    borderStyle: 'dashed',
-    gap: 8,
+    marginBottom: 20,
   },
-  addPaymentText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A73E8',
+  onlineConfirmTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A2E',
+  },
+  confirmBreakdownCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  onlineConfirmNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginBottom: 20,
+  },
+  onlineConfirmNoteText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 18,
   },
 
   // Map
@@ -1438,6 +1916,66 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  // Booking error banner
+  bookingErrorBanner: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 120 : 100,
+    left: 16,
+    right: 16,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 10,
+    padding: 12,
+  },
+  bookingErrorText: {
+    fontSize: 13,
+    color: '#DC2626',
+    textAlign: 'center',
+  },
+
+  // Success modal
+  successModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    margin: 24,
+    alignItems: 'center',
+  },
+  successIconContainer: {
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 8,
+  },
+  successBookingNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  successButton: {
+    backgroundColor: '#1A73E8',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+  },
+  successButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
   // Time Modal
   modalOverlay: {
     flex: 1,
@@ -1486,6 +2024,196 @@ const styles = StyleSheet.create({
   timeSlotTextActive: {
     fontWeight: '600',
     color: '#1A73E8',
+  },
+
+  // Space Selector
+  spaceSelectorSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 12,
+    marginTop: -4,
+  },
+  spaceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    backgroundColor: '#FAFAFA',
+  },
+  spaceCardSelected: {
+    borderColor: '#1A73E8',
+    backgroundColor: '#EBF5FF',
+  },
+  spaceCardDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#F9FAFB',
+  },
+  spaceCardLeft: {
+    marginRight: 14,
+  },
+  spaceIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#EBF5FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  spaceCardBody: {
+    flex: 1,
+  },
+  spaceCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  spaceCardType: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  spaceCardPrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A73E8',
+  },
+  spaceCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 4,
+  },
+  spaceAvailableText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '500',
+  },
+  spaceFullBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  spaceFullText: {
+    fontSize: 11,
+    color: '#EF4444',
+    fontWeight: '600',
+  },
+  spaceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  spaceBadgeText: {
+    fontSize: 11,
+    color: '#10B981',
+    fontWeight: '500',
+  },
+  spaceVehicleTypes: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    textTransform: 'capitalize',
+  },
+  spaceCheckmark: {
+    marginLeft: 10,
+  },
+
+  // Add Vehicle Modal
+  addVehicleModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 36,
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+  },
+  addVehicleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addVehicleTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A2E',
+  },
+  addVehicleSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 20,
+  },
+  addVehicleLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  addVehicleInput: {
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#1A1A2E',
+    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+  },
+  vehicleTypePills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  vehicleTypePill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  vehicleTypePillSelected: {
+    borderColor: '#1A73E8',
+    backgroundColor: '#EBF3FD',
+  },
+  vehicleTypePillText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  vehicleTypePillTextSelected: {
+    color: '#1A73E8',
+    fontWeight: '600',
+  },
+  addVehicleError: {
+    fontSize: 13,
+    color: '#EF4444',
+    marginBottom: 12,
+  },
+  addVehicleSaveButton: {
+    backgroundColor: '#1A73E8',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addVehicleSaveText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

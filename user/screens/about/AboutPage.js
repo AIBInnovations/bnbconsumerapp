@@ -438,7 +438,7 @@ const AboutPage = ({ navigation }) => {
   const truncatedDescription = appDescription.split('\n\n')[0];
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
