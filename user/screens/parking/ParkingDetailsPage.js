@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MapView, { Marker } from 'react-native-maps';
+import { palette, fontStacks } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -661,11 +662,11 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                   activeOpacity={isFullyBooked ? 1 : 0.8}
                 >
                   <View style={styles.spaceCardLeft}>
-                    <View style={[styles.spaceIconCircle, isSelected && { backgroundColor: '#1A73E8' }]}>
+                    <View style={[styles.spaceIconCircle, isSelected && { backgroundColor: '#0D7377' }]}>
                       <MaterialIcon
                         name={SPACE_TYPE_ICONS[space.spaceType] || 'parking'}
                         size={22}
-                        color={isSelected ? '#FFFFFF' : '#1A73E8'}
+                        color={isSelected ? '#FFFFFF' : '#0D7377'}
                       />
                     </View>
                   </View>
@@ -888,7 +889,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                       <Icon name="check-circle" size={16} color="#1A73E8" />
                     </View>
                   )}
-                  <Icon name={opt.icon} size={30} color={active ? '#1A73E8' : '#6B7280'} />
+                  <Icon name={opt.icon} size={30} color={active ? '#0D7377' : '#6B7280'} />
                   <Text style={[styles.paymentOptionLabel, active && styles.paymentOptionLabelActive]}>
                     {opt.label}
                   </Text>
@@ -1233,29 +1234,32 @@ const ParkingDetailsPage = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: palette.bg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'transparent',
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A2E',
+    fontFamily: fontStacks.regular,
+    fontSize: 22,
+    fontWeight: '300',
+    letterSpacing: -0.4,
+    color: palette.text,
   },
   headerActions: {
     flexDirection: 'row',
@@ -1345,8 +1349,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   thumbnailActive: {
-    borderColor: '#1A73E8',
-    backgroundColor: '#EBF5FF',
+    borderColor: '#0D7377',
+    backgroundColor: '#E8F5F4',
   },
   thumbnailImage: {
     width: '100%',
@@ -1408,7 +1412,7 @@ const styles = StyleSheet.create({
   priceTag: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -1416,7 +1420,7 @@ const styles = StyleSheet.create({
   priceAmount: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   priceUnit: {
     fontSize: 14,
@@ -1507,7 +1511,7 @@ const styles = StyleSheet.create({
   amenityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1516,7 +1520,7 @@ const styles = StyleSheet.create({
   amenityLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
 
   // Date Selection
@@ -1532,7 +1536,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateCardActive: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   dateDayName: {
     fontSize: 12,
@@ -1570,7 +1574,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   durationTypeButtonActive: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   durationTypeText: {
     fontSize: 13,
@@ -1637,7 +1641,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1648,7 +1652,7 @@ const styles = StyleSheet.create({
   hoursValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   hoursUnit: {
     fontSize: 13,
@@ -1692,7 +1696,7 @@ const styles = StyleSheet.create({
   priceTotalValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
 
   // Payment Options (Cash / Online)
@@ -1713,8 +1717,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   paymentOptionCardActive: {
-    borderColor: '#1A73E8',
-    backgroundColor: '#EBF5FF',
+    borderColor: '#0D7377',
+    backgroundColor: '#E8F5F4',
   },
   paymentOptionCheckBadge: {
     position: 'absolute',
@@ -1728,7 +1732,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   paymentOptionLabelActive: {
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   paymentOptionSubtitle: {
     fontSize: 12,
@@ -1792,7 +1796,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -1804,7 +1808,7 @@ const styles = StyleSheet.create({
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1833,8 +1837,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#1A73E8',
-    borderColor: '#1A73E8',
+    backgroundColor: '#0D7377',
+    borderColor: '#0D7377',
   },
   termsText: {
     flex: 1,
@@ -1843,13 +1847,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   termsLink: {
-    color: '#1A73E8',
+    color: '#0D7377',
     fontWeight: '500',
   },
   cancellationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     borderRadius: 10,
     padding: 12,
     marginTop: 16,
@@ -1858,7 +1862,7 @@ const styles = StyleSheet.create({
   cancellationText: {
     flex: 1,
     fontSize: 13,
-    color: '#1A73E8',
+    color: '#0D7377',
   },
 
   // Bottom Bar
@@ -1892,7 +1896,7 @@ const styles = StyleSheet.create({
   bottomPriceValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   bottomPriceDuration: {
     fontSize: 12,
@@ -1901,7 +1905,7 @@ const styles = StyleSheet.create({
   bookButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     paddingHorizontal: 28,
     paddingVertical: 16,
     borderRadius: 14,
@@ -1965,7 +1969,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   successButton: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 48,
@@ -2015,7 +2019,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   timeSlotItemActive: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
   },
   timeSlotText: {
     fontSize: 16,
@@ -2023,7 +2027,7 @@ const styles = StyleSheet.create({
   },
   timeSlotTextActive: {
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
 
   // Space Selector
@@ -2044,8 +2048,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   spaceCardSelected: {
-    borderColor: '#1A73E8',
-    backgroundColor: '#EBF5FF',
+    borderColor: '#0D7377',
+    backgroundColor: '#E8F5F4',
   },
   spaceCardDisabled: {
     opacity: 0.5,
@@ -2058,7 +2062,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2079,7 +2083,7 @@ const styles = StyleSheet.create({
   spaceCardPrice: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   spaceCardMeta: {
     flexDirection: 'row',
@@ -2186,7 +2190,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   vehicleTypePillSelected: {
-    borderColor: '#1A73E8',
+    borderColor: '#0D7377',
     backgroundColor: '#EBF3FD',
   },
   vehicleTypePillText: {
@@ -2195,7 +2199,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   vehicleTypePillTextSelected: {
-    color: '#1A73E8',
+    color: '#0D7377',
     fontWeight: '600',
   },
   addVehicleError: {
@@ -2204,7 +2208,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addVehicleSaveButton: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

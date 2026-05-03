@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { palette, fontStacks } from '../../theme';
 
 // Benefits data for drivers
 const driverBenefits = [
@@ -642,30 +643,32 @@ const AboutPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: palette.bg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'transparent',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A2E',
+    fontFamily: fontStacks.regular,
+    fontSize: 22,
+    fontWeight: '300',
+    letterSpacing: -0.4,
+    color: palette.text,
   },
   headerRight: {
     width: 40,
@@ -682,7 +685,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     marginHorizontal: 16,
     marginTop: 16,
     padding: 12,
@@ -696,7 +699,7 @@ const styles = StyleSheet.create({
   },
   infoBannerText: {
     fontSize: 13,
-    color: '#1A73E8',
+    color: '#0D7377',
     fontWeight: '500',
     flex: 1,
   },
@@ -714,11 +717,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#1A73E8',
+    shadowColor: '#0D7377',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -771,7 +774,7 @@ const styles = StyleSheet.create({
   readMoreText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
 
   // Segmented Control
@@ -809,7 +812,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   segmentTextActive: {
-    color: '#1A73E8',
+    color: '#0D7377',
   },
 
   // Benefits
@@ -827,7 +830,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -862,7 +865,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -911,7 +914,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
@@ -1004,7 +1007,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,

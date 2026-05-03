@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { palette, fontStacks } from '../../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -1022,25 +1023,18 @@ const SearchPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: palette.bg,
   },
 
   // Fixed Header Container
   fixedHeader: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: 'transparent',
   },
 
   // Header
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
     paddingBottom: 12,
   },
   headerTop: {

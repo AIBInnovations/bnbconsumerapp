@@ -3,9 +3,11 @@
  * @format
  */
 import "./global.css";
-import React from 'react';
-import { LogBox, StatusBar, useColorScheme, View, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { LogBox, StatusBar, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Splash from './user/screens/onboarding/Splash';
+import { palette } from './user/theme';
 
 // Every one of our screens already imports SafeAreaView from
 // `react-native-safe-area-context`. The deprecation warning fires once at
@@ -42,12 +44,12 @@ const Stack = createNativeStackNavigator();
 const navigationTheme = {
   dark: false,
   colors: {
-    primary: '#0D7377',
-    background: '#FFFFFF',
-    card: '#FFFFFF',
-    text: '#1A1A2E',
-    border: '#F3F4F6',
-    notification: '#EF4444',
+    primary: palette.primary,
+    background: palette.bg,
+    card: palette.bg,
+    text: palette.text,
+    border: 'rgba(0,0,0,0.06)',
+    notification: palette.danger,
   },
   fonts: {
     regular: { fontFamily: 'System', fontWeight: '400' as const },
@@ -57,10 +59,16 @@ const navigationTheme = {
   },
 };
 
+// Native-stack animation tuned for a softer, more deliberate feel
+// between screens. `slide_from_right` gives a clear forward motion;
+// `animationDuration` slows it from the default snap to 350ms so the
+// transition reads as intentional rather than abrupt.
 const screenOptions = {
   headerShown: false,
-  contentStyle: { backgroundColor: '#FFFFFF' },
-  animation: 'none' as const,
+  contentStyle: { backgroundColor: palette.bg },
+  animation: 'slide_from_right' as const,
+  animationDuration: 350,
+  gestureEnabled: true,
 };
 
 /**
@@ -76,23 +84,28 @@ function RootNavigator() {
   const { isLoading, isAuthenticated, user } = useAuth();
   const isDarkMode = useColorScheme() === 'dark';
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#0D7377" />
-      </View>
-    );
+  // Cold-start splash plays a guaranteed minimum, regardless of how
+  // quickly auth resolves. We hold the splash until BOTH (a) the
+  // splash animation finishes and (b) auth context is ready — that
+  // way the user never sees a flash-of-loading-spinner-then-splash.
+  const [splashComplete, setSplashComplete] = useState(false);
+
+  if (!splashComplete || isLoading) {
+    return <Splash onDone={() => setSplashComplete(true)} />;
   }
 
   if (!isAuthenticated) {
     return (
       <>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="#FFFFFF" translucent={false} />
-        <Stack.Navigator screenOptions={screenOptions}>
-          <Stack.Screen name="Welcome" component={Welcome} />
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+        {/* Flow: Splash (handled above) → Onboarding (3 slides) → SignIn → OTP.
+            Welcome is kept registered as a route in case anything navigates
+            back to it, but it's no longer the initial screen. */}
+        <Stack.Navigator initialRouteName="Onboarding" screenOptions={screenOptions}>
           <Stack.Screen name="Onboarding" component={Onboarding} />
           <Stack.Screen name="SignIn" component={SignIn} />
           <Stack.Screen name="OTPVerification" component={OTPVerification} />
+          <Stack.Screen name="Welcome" component={Welcome} />
         </Stack.Navigator>
       </>
     );
@@ -101,7 +114,7 @@ function RootNavigator() {
   if (user?.onboardingStep !== 'completed') {
     return (
       <>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="#FFFFFF" translucent={false} />
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
         <Stack.Navigator screenOptions={screenOptions}>
           <Stack.Screen name="UserOnboarding" component={UserOnboarding} />
         </Stack.Navigator>
@@ -128,7 +141,7 @@ function RootNavigator() {
 
 function App() {
   return (
-    <SafeAreaProvider style={{ backgroundColor: '#FFFFFF' }}>
+    <SafeAreaProvider style={{ backgroundColor: palette.bg }}>
       <AppAlertProvider>
         <AuthProvider>
           <NavigationContainer theme={navigationTheme}>

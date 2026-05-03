@@ -1,23 +1,56 @@
-import React, { useState } from 'react';
+/**
+ * SignIn — phone entry, terms acceptance, sends OTP via MSG91.
+ *
+ * Functional behavior preserved 1:1 from prior version:
+ *   - parseIndianPhone validates the 10-digit number
+ *   - msg91Service.sendOtp issues the code
+ *   - same error-code mapping
+ *   - navigates to OTPVerification with { identifier, channel: 'sms' }
+ *
+ * Visuals: glass surface form on the warm ambient background. Country
+ * code is a separate ink pill so the "+91" is unmistakably tappable
+ * weight; the phone field is a glass pill input.
+ */
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
+  TouchableOpacity,
+  Animated,
+  Easing,
+  Pressable,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Feather';
+import Svg, { Path } from 'react-native-svg';
 
 import { parseIndianPhone } from '../../utils/validateForm';
-import * as authService from '../../services/authService';
 import * as msg91Service from '../../services/msg91Service';
 
+import AmbientBackground from '../../components/glass/AmbientBackground';
+import GlassCard from '../../components/glass/GlassCard';
+import GlassInput from '../../components/glass/GlassInput';
+import GlassButton from '../../components/glass/GlassButton';
+import { PhoneIcon, BackIcon } from '../../components/glass/Icons';
+import { palette, typography, spacing, fontStacks, radii } from '../../theme';
+
 const { Msg91Error } = msg91Service;
+
+const CheckIcon = ({ checked }) => (
+  <Svg width={14} height={14} viewBox="0 0 16 16" fill="none">
+    <Path
+      d="M3 8.5l3 3L13 5"
+      stroke={checked ? '#FFFFFF' : 'transparent'}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
 
 const SignIn = ({ navigation }) => {
   const [phone, setPhone] = useState('');
@@ -25,10 +58,20 @@ const SignIn = ({ navigation }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Derive parsed phone whenever input changes
   const parsedPhone = parseIndianPhone(phone);
   const isPhoneValid = !!parsedPhone;
   const canSubmit = isPhoneValid && acceptTerms && !isLoading;
+
+  // Card entrance
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [enter]);
 
   const handleSendOtp = async () => {
     if (!canSubmit) return;
@@ -36,10 +79,6 @@ const SignIn = ({ navigation }) => {
     setIsLoading(true);
 
     try {
-      // MOCK OTP (backend) — replaced by MSG91 widget. Kept here, commented out,
-      // so the legacy mock flow can be re-enabled if needed.
-      // await authService.sendOtp(parsedPhone, 'sms');
-
       await msg91Service.sendOtp(parsedPhone);
       navigation.navigate('OTPVerification', {
         identifier: parsedPhone,
@@ -67,274 +106,292 @@ const SignIn = ({ navigation }) => {
     }
   };
 
+  const cardSlide = enter.interpolate({ inputRange: [0, 1], outputRange: [40, 0] });
+
+  // When the phone input gets focus, scroll the form card + "Send code"
+  // button into view. AndroidManifest already sets adjustResize, but on
+  // tall headlines the form still falls below the keyboard's top edge
+  // until the user manually scrolls — basic UX requires we do it for them.
+  const scrollRef = useRef(null);
+  const handleInputFocus = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Decorative Elements */}
-          <View style={styles.decorativeTop}>
-            <View style={styles.blobLarge} />
-            <View style={styles.blobSmall} />
-          </View>
-
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Welcome</Text>
-            <Text style={styles.subtitle}>Enter your mobile number to continue</Text>
-          </View>
-
-          {/* Form */}
-          <View style={styles.formContainer}>
-            {/* Phone Input */}
-            <View style={styles.inputContainer}>
-              <View style={[styles.inputWrapper, errorMessage ? styles.inputWrapperError : null]}>
-                {/* Country Code */}
-                <View style={styles.countryCode}>
-                  <Text style={styles.countryCodeText}>+91</Text>
-                </View>
-                <View style={styles.divider} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Mobile number"
-                  placeholderTextColor="#9CA3AF"
-                  value={phone}
-                  onChangeText={(text) => {
-                    setPhone(text);
-                    setErrorMessage('');
-                  }}
-                  keyboardType="phone-pad"
-                  maxLength={15}
-                  returnKeyType="done"
-                  onSubmitEditing={handleSendOtp}
-                />
-                {isPhoneValid && (
-                  <Icon name="check-circle" size={18} color="#0D7377" style={styles.validIcon} />
-                )}
-              </View>
-              {errorMessage ? (
-                <Text
-                  style={styles.errorText}
-                  accessibilityRole="alert"
-                  accessibilityLiveRegion="assertive"
+    <View style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <AmbientBackground>
+        <SafeAreaView style={styles.safe}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={0}
+          >
+            <ScrollView
+              ref={scrollRef}
+              contentContainerStyle={styles.scroll}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              automaticallyAdjustKeyboardInsets
+            >
+              {/* Top row */}
+              <View style={styles.topRow}>
+                <Pressable
+                  onPress={() => navigation.goBack()}
+                  hitSlop={10}
+                  style={styles.backBtn}
                 >
-                  {errorMessage}
-                </Text>
-              ) : null}
-            </View>
-
-            {/* Terms Checkbox */}
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setAcceptTerms(!acceptTerms)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
-                {acceptTerms && <Icon name="check" size={14} color="#FFFFFF" />}
+                  <BackIcon color={palette.text} />
+                </Pressable>
+                <Pressable hitSlop={10} onPress={() => navigation.navigate('Welcome')}>
+                  <Text style={styles.brand}>PARK</Text>
+                </Pressable>
+                <View style={{ width: 24 }} />
               </View>
-              <Text style={styles.checkboxLabel}>
-                I agree to the{' '}
-                <Text style={styles.checkboxLink}>Terms & Conditions</Text>
-              </Text>
-            </TouchableOpacity>
 
-            {/* Send OTP Button */}
-            <TouchableOpacity
-              style={[styles.primaryButton, !canSubmit && styles.primaryButtonDisabled]}
-              onPress={handleSendOtp}
-              disabled={!canSubmit}
-              activeOpacity={0.8}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Send OTP</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+              {/* Headline */}
+              <Animated.View
+                style={{
+                  opacity: enter,
+                  transform: [{ translateY: cardSlide }],
+                }}
+              >
+                <View style={styles.headline}>
+                  <Text style={styles.eyebrow}>Sign in</Text>
+                  <Text style={styles.title}>Welcome{'\n'}back.</Text>
+                  <Text style={styles.subtitle}>
+                    Enter your mobile number — we'll send a one-time code.
+                  </Text>
+                </View>
 
-        </ScrollView>
-      </KeyboardAvoidingView>
+                {/* Form card */}
+                <GlassCard radius={radii.lg} intensity={20} style={styles.card}>
+                  <View style={styles.cardInner}>
+                    {/* Phone row: country code pill + glass input */}
+                    <View style={styles.phoneRow}>
+                      <View style={styles.cc}>
+                        <Text style={styles.ccText}>+91</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <GlassInput
+                          value={phone}
+                          onChangeText={(t) => {
+                            setPhone(t);
+                            setErrorMessage('');
+                          }}
+                          placeholder="Mobile number"
+                          keyboardType="phone-pad"
+                          maxLength={15}
+                          returnKeyType="done"
+                          onSubmitEditing={handleSendOtp}
+                          onFocus={handleInputFocus}
+                          leftIcon={<PhoneIcon size={20} />}
+                          right={
+                            isPhoneValid ? (
+                              <View style={styles.tick}>
+                                <CheckIcon checked />
+                              </View>
+                            ) : null
+                          }
+                        />
+                      </View>
+                    </View>
 
-      {/* Bottom Decorative — pinned to the SafeAreaView (outside the
-          KeyboardAvoidingView) so it doesn't ride up over the Send OTP
-          button when the keyboard opens. The keyboard simply covers it. */}
-      <View style={styles.decorativeBottom} pointerEvents="none">
-        <View style={styles.blobBottomLeft} />
-      </View>
-    </SafeAreaView>
+                    {errorMessage ? (
+                      <Text
+                        style={styles.errorText}
+                        accessibilityRole="alert"
+                        accessibilityLiveRegion="assertive"
+                      >
+                        {errorMessage}
+                      </Text>
+                    ) : null}
+
+                    {/* Terms */}
+                    <TouchableOpacity
+                      style={styles.terms}
+                      onPress={() => setAcceptTerms(!acceptTerms)}
+                      activeOpacity={0.7}
+                    >
+                      <View
+                        style={[
+                          styles.checkbox,
+                          acceptTerms && styles.checkboxChecked,
+                        ]}
+                      >
+                        <CheckIcon checked={acceptTerms} />
+                      </View>
+                      <Text style={styles.termsText}>
+                        I agree to the{' '}
+                        <Text style={styles.termsLink}>Terms & Privacy</Text>
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* CTA */}
+                    <GlassButton
+                      label="Send code"
+                      onPress={handleSendOtp}
+                      disabled={!canSubmit}
+                      loading={isLoading}
+                      fullWidth
+                      style={{ marginTop: spacing.md }}
+                    />
+                  </View>
+                </GlassCard>
+              </Animated.View>
+
+              {/* Footer */}
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>
+                  No account?{' '}
+                  <Text
+                    style={styles.footerLink}
+                    onPress={() => navigation.navigate('Welcome')}
+                  >
+                    Discover PARK.
+                  </Text>
+                </Text>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </AmbientBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
+  safe: { flex: 1 },
+  scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
   },
-  decorativeTop: {
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 150,
-    height: 150,
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
-  blobLarge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#E8F5F4',
-  },
-  blobSmall: {
-    position: 'absolute',
-    top: 80,
-    right: 100,
+  backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0D7377',
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  header: {
-    marginTop: 80,
-    marginBottom: 40,
+  brand: {
+    fontFamily: fontStacks.regular,
+    fontSize: 20,
+    fontWeight: '300',
+    letterSpacing: 4,
+    color: palette.text,
+  },
+  headline: {
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
+  eyebrow: {
+    ...typography.label,
+    color: palette.primary,
+    marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 8,
+    fontFamily: fontStacks.regular,
+    fontSize: 44,
+    fontWeight: '300',
+    letterSpacing: -1.5,
+    lineHeight: 48,
+    color: palette.text,
+    marginBottom: spacing.md,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
+    ...typography.body,
+    color: palette.textMuted,
   },
-  formContainer: {
-    flex: 1,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  inputWrapper: {
+  card: { width: '100%' },
+  cardInner: { padding: spacing.lg + 4 },
+  phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    gap: spacing.sm,
   },
-  inputWrapperError: {
-    borderColor: '#EF4444',
-  },
-  countryCode: {
-    paddingRight: 12,
+  cc: {
+    backgroundColor: palette.accent,
+    paddingHorizontal: 18,
     paddingVertical: 16,
+    borderRadius: radii.pill,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  countryCodeText: {
+  ccText: {
+    color: palette.textInverse,
+    fontFamily: fontStacks.medium,
+    fontWeight: '500',
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A2E',
+    letterSpacing: 0.3,
   },
-  divider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#D1D5DB',
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 16,
-    fontSize: 15,
-    color: '#1A1A2E',
-  },
-  validIcon: {
-    marginLeft: 8,
+  tick: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: palette.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
-    marginTop: 6,
+    color: palette.danger,
+    marginTop: spacing.sm,
     marginLeft: 4,
   },
-  maskedText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-    marginLeft: 4,
-  },
-  checkboxContainer: {
+  terms: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 8,
+    marginTop: spacing.lg,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#0D7377',
-    borderRadius: 4,
-    marginRight: 12,
-    justifyContent: 'center',
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: palette.text,
+    backgroundColor: 'transparent',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   checkboxChecked: {
-    backgroundColor: '#0D7377',
-    borderColor: '#0D7377',
+    backgroundColor: palette.text,
+    borderColor: palette.text,
   },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#6B7280',
+  termsText: {
     flex: 1,
+    fontSize: 13,
+    color: palette.textMuted,
+    fontFamily: fontStacks.regular,
   },
-  checkboxLink: {
-    color: '#0D7377',
-    fontWeight: '600',
+  termsLink: {
+    color: palette.text,
+    fontFamily: fontStacks.medium,
+    fontWeight: '500',
   },
-  primaryButton: {
-    backgroundColor: '#0D7377',
-    borderRadius: 12,
-    paddingVertical: 16,
+  footer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 52,
+    paddingTop: spacing.xl,
   },
-  primaryButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+  footerText: {
+    ...typography.bodySmall,
+    color: palette.textMuted,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  decorativeBottom: {
-    position: 'absolute',
-    bottom: -30,
-    left: -30,
-  },
-  blobBottomLeft: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#E8F5F4',
+  footerLink: {
+    color: palette.text,
+    fontFamily: fontStacks.medium,
+    fontWeight: '500',
   },
 });
 

@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Platform,
   ScrollView,
+  Animated,
+  Easing,
 } from 'react-native';
 
 // ============================================================================
@@ -66,12 +68,39 @@ export function AppAlertProvider({ children }) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // Animations: backdrop fade + card scale/translate.
+  // Driving these manually (rather than relying on Modal's animationType)
+  // gives us a softer, less abrupt entrance — the previous popup snapped
+  // in with a hard fade, which read as janky.
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const cardAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     _setState = setState;
     return () => {
       if (_setState === setState) _setState = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (state.visible) {
+      backdropAnim.setValue(0);
+      cardAnim.setValue(0);
+      Animated.parallel([
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardAnim, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [state.visible, backdropAnim, cardAnim]);
 
   const dismiss = useCallback(() => {
     setState((s) => ({ ...s, visible: false }));
@@ -88,18 +117,38 @@ export function AppAlertProvider({ children }) {
     stateRef.current.onDismiss?.();
   }, [dismiss]);
 
+  const cardStyle = {
+    opacity: cardAnim,
+    transform: [
+      {
+        scale: cardAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.92, 1],
+        }),
+      },
+      {
+        translateY: cardAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [12, 0],
+        }),
+      },
+    ],
+  };
+
   return (
     <>
       {children}
       <Modal
         transparent
         visible={state.visible}
-        animationType="fade"
+        animationType="none"
         onRequestClose={handleBackdropPress}
         statusBarTranslucent
       >
-        <Pressable style={styles.backdrop} onPress={handleBackdropPress}>
-          <Pressable style={styles.card} onPress={() => {}}>
+        <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]}>
+          <Pressable style={styles.backdropPress} onPress={handleBackdropPress}>
+            <Animated.View style={[styles.cardWrap, cardStyle]} pointerEvents="box-none">
+              <Pressable style={styles.card} onPress={() => {}}>
             {state.title ? <Text style={styles.title}>{state.title}</Text> : null}
             {state.message ? (
               <ScrollView style={styles.messageScroll} contentContainerStyle={styles.messageContainer}>
@@ -152,8 +201,10 @@ export function AppAlertProvider({ children }) {
                 );
               })}
             </View>
+              </Pressable>
+            </Animated.View>
           </Pressable>
-        </Pressable>
+        </Animated.View>
       </Modal>
     </>
   );
@@ -163,27 +214,33 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
+  },
+  backdropPress: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+  cardWrap: {
     width: '100%',
     maxWidth: 420,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 22,
+    width: '100%',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.18,
-        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.22,
+        shadowRadius: 28,
       },
-      android: { elevation: 12 },
+      android: { elevation: 14 },
     }),
   },
-  title: { fontSize: 17, fontWeight: '600', color: '#0F172A', marginBottom: 8 },
+  title: { fontSize: 17, fontWeight: '700', color: '#0F172A', marginBottom: 8 },
   messageScroll: { maxHeight: 240, marginBottom: 18 },
   messageContainer: { paddingRight: 4 },
   message: { fontSize: 14, color: '#475569', lineHeight: 20 },

@@ -20,6 +20,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/AuthContext';
 import * as bookingService from '../../services/bookingService';
+import { palette, fontStacks } from '../../theme';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -503,7 +504,7 @@ const BookingManagementPage = ({ navigation }) => {
               <Icon
                 name={tab.icon}
                 size={16}
-                color={selectedTab === tab.id ? '#1A73E8' : '#9CA3AF'}
+                color={selectedTab === tab.id ? '#0D7377' : '#9CA3AF'}
               />
               <Text style={[styles.tabText, selectedTab === tab.id && styles.tabTextActive]}>
                 {tab.label}
@@ -937,35 +938,37 @@ const BookingManagementPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: palette.bg,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A1A2E',
+    fontFamily: fontStacks.regular,
+    fontSize: 28,
+    fontWeight: '300',
+    letterSpacing: -0.5,
+    color: palette.text,
   },
   headerActions: {
     flexDirection: 'row',
     gap: 8,
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1008,7 +1011,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabTextActive: {
-    color: '#1A73E8',
+    color: '#0D7377',
     fontWeight: '600',
   },
   tabBadge: {
@@ -1018,7 +1021,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   tabBadgeActive: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
   },
   tabBadgeText: {
     fontSize: 12,
@@ -1026,7 +1029,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   tabBadgeTextActive: {
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   tabIndicator: {
     position: 'absolute',
@@ -1034,7 +1037,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 3,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     borderTopLeftRadius: 3,
     borderTopRightRadius: 3,
   },
@@ -1050,18 +1053,16 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
+  // Flat content block on the mint page bg. The card-inside-card feel
+  // (white box behind every booking) is gone — booking groups are
+  // separated by spacing only.
   bookingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 4,
+    paddingVertical: 12,
+    marginBottom: 6,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1071,8 +1072,8 @@ const styles = StyleSheet.create({
   parkingIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#EBF5FF',
+    borderRadius: 22,
+    backgroundColor: 'rgba(13, 115, 119, 0.10)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1108,9 +1109,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cardDetails: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: 'transparent',
+    paddingVertical: 4,
     marginBottom: 14,
   },
   detailRow: {
@@ -1141,7 +1141,7 @@ const styles = StyleSheet.create({
   priceValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   cardActions: {
     flexDirection: 'row',
@@ -1152,18 +1152,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#EBF5FF',
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(13, 115, 119, 0.10)',
     gap: 6,
   },
   actionButtonText: {
     fontSize: 13,
-    color: '#1A73E8',
+    color: '#0D7377',
     fontWeight: '600',
   },
   primaryButton: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   primaryButtonText: {
     color: '#FFFFFF',
@@ -1186,8 +1186,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 10,
+    backgroundColor: 'transparent',
+    borderRadius: 999,
   },
   starsContainer: {
     flexDirection: 'row',
@@ -1203,7 +1203,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(13, 115, 119, 0.10)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -1224,7 +1224,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
@@ -1242,10 +1242,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#1A73E8',
+    shadowColor: '#0D7377',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1319,7 +1319,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 12,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1344,14 +1344,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   infoBadge: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   infoBadgeText: {
     fontSize: 11,
-    color: '#1A73E8',
+    color: '#0D7377',
     fontWeight: '500',
   },
   timelineCard: {
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   timelineDotEnd: {
     backgroundColor: '#10B981',
@@ -1424,7 +1424,7 @@ const styles = StyleSheet.create({
   paymentTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   cancellationCard: {
     flexDirection: 'row',
@@ -1451,7 +1451,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1473,7 +1473,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -1482,7 +1482,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1498,11 +1498,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     gap: 8,
   },
   detailsActionPrimary: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   detailsActionCancel: {
     backgroundColor: '#FEE2E2',
@@ -1510,7 +1510,7 @@ const styles = StyleSheet.create({
   detailsActionText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
 
   // Confirm Modal
@@ -1627,7 +1627,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1637,7 +1637,7 @@ const styles = StyleSheet.create({
   hourValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   hourUnit: {
     fontSize: 14,
@@ -1661,7 +1661,7 @@ const styles = StyleSheet.create({
   extendPriceValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   extendActions: {
     flexDirection: 'row',
@@ -1683,7 +1683,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1749,7 +1749,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     alignItems: 'center',
   },
   reviewSubmitDisabled: {
@@ -1800,7 +1800,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   filterOptionActive: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   filterOptionText: {
     fontSize: 14,
@@ -1811,7 +1811,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   filterApplyButton: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
+import { palette, fontStacks } from '../../theme';
 
 // Sample subscription plans data
 const subscriptionPlans = [
@@ -51,8 +52,8 @@ const subscriptionPlans = [
       { name: 'Premium Support', included: true, icon: 'headphones' },
       { name: 'No Ads', included: true, icon: 'eye-off' },
     ],
-    color: '#1A73E8',
-    gradient: ['#4285F4', '#1A73E8'],
+    color: '#0D7377',
+    gradient: ['#4285F4', '#0D7377'],
     popular: true,
   },
   {
@@ -316,13 +317,16 @@ const SubscriptionPage = ({ navigation }) => {
     const isCurrentPlan = currentPlan === plan.id;
     const price = billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
     const savings = calculateSavings(plan);
-
-    const getBorderColor = () => {
-      if (plan.id === 'basic') return '#10B981';
-      if (plan.id === 'premium') return '#1A73E8';
-      if (plan.id === 'pro') return '#7C3AED';
-      return '#E5E7EB';
-    };
+    const includedCount = plan.features.filter((f) => f.included).length;
+    const isFree = price === 0;
+    const ctaLabel = isCurrentPlan
+      ? 'Manage'
+      : currentPlan === 'basic'
+        ? (isFree ? 'Current' : 'Subscribe')
+        : subscriptionPlans.findIndex(p => p.id === plan.id) >
+            subscriptionPlans.findIndex(p => p.id === currentPlan)
+          ? 'Upgrade'
+          : 'Downgrade';
 
     return (
       <Animated.View
@@ -330,98 +334,95 @@ const SubscriptionPage = ({ navigation }) => {
         style={[
           styles.planCard,
           plan.popular && styles.popularPlanCard,
-          isCurrentPlan && styles.currentPlanCard,
           {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
-            borderColor: getBorderColor(),
           },
         ]}
       >
         {plan.popular && (
           <View style={styles.popularBadge}>
-            <Icon name="star" size={12} color="#FFFFFF" />
-            <Text style={styles.popularBadgeText}>Most Popular</Text>
+            <Text style={styles.popularBadgeText}>POPULAR</Text>
           </View>
         )}
 
-        {isCurrentPlan && (
-          <View style={styles.currentBadge}>
-            <Icon name="check-circle" size={12} color="#1A73E8" />
-            <Text style={styles.currentBadgeText}>Current Plan</Text>
+        {/* Header row: icon + name on left, price on right */}
+        <View style={styles.planHeaderRow}>
+          <View style={[styles.planIconContainer, { backgroundColor: plan.color }]}>
+            <Icon
+              name={plan.id === 'basic' ? 'box' : plan.id === 'premium' ? 'award' : 'crown'}
+              size={20}
+              color="#FFFFFF"
+            />
           </View>
-        )}
-
-        <View style={[styles.planIconContainer, { backgroundColor: plan.color }]}>
-          <Icon
-            name={plan.id === 'basic' ? 'box' : plan.id === 'premium' ? 'award' : 'crown'}
-            size={24}
-            color="#FFFFFF"
-          />
-        </View>
-
-        <Text style={styles.planName}>{plan.name}</Text>
-        <Text style={styles.planDescription}>{plan.description}</Text>
-
-        <View style={styles.priceContainer}>
-          {price === 0 ? (
-            <Text style={styles.freePrice}>Free</Text>
-          ) : (
-            <>
-              <Text style={styles.currency}>₹</Text>
-              <Text style={styles.priceAmount}>{price.toFixed(2)}</Text>
-              <Text style={styles.pricePeriod}>/{billingCycle === 'monthly' ? 'mo' : 'yr'}</Text>
-            </>
-          )}
+          <View style={styles.planTitleBlock}>
+            <Text style={styles.planName}>{plan.name}</Text>
+            <Text style={styles.planDescription} numberOfLines={1}>
+              {plan.description}
+            </Text>
+          </View>
+          <View style={styles.priceBlock}>
+            {isFree ? (
+              <Text style={styles.freePrice}>Free</Text>
+            ) : (
+              <>
+                <Text style={styles.priceAmount}>
+                  ₹{Math.round(price)}
+                </Text>
+                <Text style={styles.pricePeriod}>
+                  /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                </Text>
+              </>
+            )}
+          </View>
         </View>
 
         {billingCycle === 'yearly' && savings > 0 && (
-          <Text style={styles.savingsText}>Save ₹{savings.toFixed(2)}/year</Text>
+          <Text style={styles.savingsText}>Save ₹{Math.round(savings)} / yr</Text>
         )}
 
-        <View style={styles.featuresPreview}>
-          {plan.features.slice(0, 4).map((feature, index) => (
-            <View key={index} style={styles.featurePreviewItem}>
-              <Icon
-                name={feature.included ? 'check' : 'x'}
-                size={14}
-                color={feature.included ? '#10B981' : '#D1D5DB'}
-              />
-              <Text style={[
-                styles.featurePreviewText,
-                !feature.included && styles.featureDisabled,
-              ]}>{feature.name}</Text>
+        {/* Compact feature pills */}
+        <View style={styles.featurePillsRow}>
+          {plan.features.filter((f) => f.included).slice(0, 3).map((feature, i) => (
+            <View key={i} style={styles.featurePill}>
+              <Icon name="check" size={12} color={palette.primary} />
+              <Text style={styles.featurePillText} numberOfLines={1}>
+                {feature.name}
+              </Text>
             </View>
           ))}
+          {includedCount > 3 && (
+            <TouchableOpacity
+              style={[styles.featurePill, styles.featurePillMore]}
+              onPress={() => setShowCompareModal(true)}
+            >
+              <Text style={styles.featurePillMoreText}>
+                +{includedCount - 3} more
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        <TouchableOpacity
-          style={styles.viewAllFeaturesButton}
-          onPress={() => setShowCompareModal(true)}
-        >
-          <Text style={styles.viewAllFeaturesText}>View all features</Text>
-          <Icon name="chevron-right" size={14} color="#1A73E8" />
-        </TouchableOpacity>
-
+        {/* CTA */}
         {isCurrentPlan ? (
           <TouchableOpacity
-            style={styles.manageButton}
+            style={[styles.subscribeButton, styles.subscribeButtonCurrent]}
             onPress={() => setShowManageModal(true)}
+            activeOpacity={0.85}
           >
-            <Icon name="settings" size={18} color="#10B981" />
-            <Text style={styles.manageButtonText}>Manage Plan</Text>
+            <Icon name="check-circle" size={16} color={palette.primary} />
+            <Text style={[styles.subscribeButtonText, { color: palette.primary }]}>
+              Current — Manage
+            </Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={[styles.subscribeButton, { backgroundColor: plan.color }]}
             onPress={() => handleSubscribe(plan)}
+            activeOpacity={0.85}
           >
-            <Text style={styles.subscribeButtonText}>
-              {plan.monthlyPrice === 0 ? 'Current Plan' :
-               currentPlan === 'basic' ? 'Subscribe Now' :
-               subscriptionPlans.findIndex(p => p.id === plan.id) > subscriptionPlans.findIndex(p => p.id === currentPlan)
-                 ? 'Upgrade Now' : 'Downgrade'}
-            </Text>
+            <Text style={styles.subscribeButtonText}>{ctaLabel}</Text>
+            <Icon name="arrow-right" size={16} color="#FFFFFF" />
           </TouchableOpacity>
         )}
       </Animated.View>
@@ -932,7 +933,7 @@ const SubscriptionPage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={palette.bg} />
 
       {renderHeader()}
 
@@ -965,23 +966,23 @@ const SubscriptionPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: palette.bg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'transparent',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -990,14 +991,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontFamily: fontStacks.regular,
+    fontSize: 22,
+    fontWeight: '300',
+    letterSpacing: -0.4,
+    color: palette.text,
   },
   headerSubtitle: {
+    fontFamily: fontStacks.regular,
     fontSize: 12,
-    color: '#6B7280',
+    color: palette.textMuted,
     marginTop: 2,
+    letterSpacing: 0.2,
   },
   helpButton: {
     width: 40,
@@ -1021,7 +1026,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   trialIconContainer: {
     width: 48,
@@ -1054,7 +1059,7 @@ const styles = StyleSheet.create({
   trialButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
 
   // Billing Toggle
@@ -1077,7 +1082,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   billingOptionActive: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   billingOptionText: {
     fontSize: 14,
@@ -1106,175 +1111,169 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  // Plan Card
+  // Compact modern plan card. Soft white surface on mint bg with a
+  // teal-tinted lifted shadow. The popular plan gets a stronger,
+  // teal-coloured shadow to draw the eye without needing extra chrome.
   planCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    marginBottom: 14,
     position: 'relative',
+    shadowColor: '#0F2828',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   popularPlanCard: {
-    shadowColor: '#1A73E8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  currentPlanCard: {
-    // Border color applied dynamically
+    shadowColor: '#0D7377',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 6,
   },
   popularBadge: {
     position: 'absolute',
-    top: -12,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A73E8',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    top: 14,
+    right: 14,
+    backgroundColor: '#FBE45F',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   popularBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 4,
+    fontFamily: fontStacks.medium,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: palette.text,
   },
-  currentBadge: {
-    position: 'absolute',
-    top: -12,
-    right: 20,
+  planHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    gap: 12,
   },
-  currentBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1A73E8',
-    marginLeft: 4,
+  planTitleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
-  planIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  planName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  planDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  priceContainer: {
+  priceBlock: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: 16,
+    flexShrink: 0,
   },
-  currency: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
+  planIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planName: {
+    fontFamily: fontStacks.medium,
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.2,
+    color: palette.text,
+  },
+  planDescription: {
+    fontFamily: fontStacks.regular,
+    fontSize: 12,
+    color: palette.textMuted,
+    marginTop: 1,
   },
   priceAmount: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontFamily: fontStacks.regular,
+    fontSize: 22,
+    fontWeight: '500',
+    letterSpacing: -0.4,
+    color: palette.text,
   },
   pricePeriod: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginLeft: 4,
+    fontFamily: fontStacks.regular,
+    fontSize: 12,
+    color: palette.textMuted,
+    marginLeft: 1,
   },
   freePrice: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontFamily: fontStacks.medium,
+    fontSize: 16,
+    fontWeight: '600',
+    color: palette.primary,
+    letterSpacing: 0.2,
   },
   savingsText: {
-    fontSize: 14,
-    color: '#10B981',
+    fontFamily: fontStacks.medium,
+    fontSize: 11,
+    color: palette.primary,
     fontWeight: '600',
-    marginTop: 4,
-  },
-  featuresPreview: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  featurePreviewItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featurePreviewText: {
-    fontSize: 14,
-    color: '#374151',
-    marginLeft: 10,
-  },
-  featureDisabled: {
-    color: '#D1D5DB',
-  },
-  viewAllFeaturesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  viewAllFeaturesText: {
-    fontSize: 14,
-    color: '#1A73E8',
-    fontWeight: '600',
-  },
-  subscribeButton: {
-    marginTop: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  subscribeButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  manageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: '#D1FAE5',
-  },
-  manageButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#10B981',
-    marginLeft: 8,
+    marginTop: 6,
+    letterSpacing: 0.2,
   },
 
-  // Current Status
+  // Feature pills row — small inline chips instead of the long check list.
+  featurePillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 12,
+  },
+  featurePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(13, 115, 119, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  featurePillText: {
+    fontFamily: fontStacks.medium,
+    fontSize: 11,
+    fontWeight: '500',
+    color: palette.text,
+    maxWidth: 110,
+  },
+  featurePillMore: {
+    backgroundColor: 'transparent',
+  },
+  featurePillMoreText: {
+    fontFamily: fontStacks.medium,
+    fontSize: 11,
+    fontWeight: '600',
+    color: palette.primary,
+  },
+
+  // CTA — pill button matching the home book-button language.
+  subscribeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+    paddingVertical: 12,
+    borderRadius: 999,
+  },
+  subscribeButtonCurrent: {
+    backgroundColor: 'rgba(13, 115, 119, 0.10)',
+  },
+  subscribeButtonText: {
+    fontFamily: fontStacks.medium,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    color: '#FFFFFF',
+  },
+
+  // Current Status — flat block on mint bg, no white card.
   currentStatusContainer: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: 'transparent',
+    marginHorizontal: 20,
+    marginTop: 12,
+    padding: 0,
   },
   currentStatusHeader: {
     flexDirection: 'row',
@@ -1297,8 +1296,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   currentStatusDetails: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderRadius: 18,
     padding: 16,
   },
   statusDetailRow: {
@@ -1327,7 +1326,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
   },
   statusActionButtonOutline: {
     backgroundColor: '#FEE2E2',
@@ -1335,19 +1334,16 @@ const styles = StyleSheet.create({
   statusActionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
     marginLeft: 6,
   },
 
-  // Promo Section
+  // Promo Section — flat block on mint bg, no white card.
   promoSection: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
+    backgroundColor: 'transparent',
+    marginHorizontal: 20,
     marginTop: 24,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    padding: 0,
   },
   promoHeader: {
     flexDirection: 'row',
@@ -1377,7 +1373,7 @@ const styles = StyleSheet.create({
   },
   promoApplyButton: {
     marginLeft: 12,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 10,
@@ -1419,9 +1415,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontFamily: fontStacks.regular,
+    fontSize: 22,
+    fontWeight: '300',
+    letterSpacing: -0.4,
+    color: palette.text,
   },
   addPaymentButton: {
     flexDirection: 'row',
@@ -1430,18 +1428,15 @@ const styles = StyleSheet.create({
   addPaymentText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
     marginLeft: 4,
   },
   paymentMethodCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    marginBottom: 0,
   },
   paymentMethodIcon: {
     width: 48,
@@ -1466,7 +1461,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   defaultBadge: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1475,7 +1470,7 @@ const styles = StyleSheet.create({
   defaultBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   paymentMethodMenu: {
     padding: 4,
@@ -1487,12 +1482,10 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   faqItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderRadius: 18,
     padding: 16,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    marginTop: 10,
   },
   faqHeader: {
     flexDirection: 'row',
@@ -1610,7 +1603,7 @@ const styles = StyleSheet.create({
   pricingTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   paymentMethodSelect: {
     marginTop: 20,
@@ -1639,10 +1632,10 @@ const styles = StyleSheet.create({
   changePaymentText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   confirmSubscribeButton: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -1688,7 +1681,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1760,7 +1753,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     alignItems: 'center',
   },
   confirmActionText: {

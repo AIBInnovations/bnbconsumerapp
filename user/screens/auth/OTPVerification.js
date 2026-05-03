@@ -1,36 +1,51 @@
+/**
+ * OTPVerification — 4-digit code entry, MSG91 verify + backend session.
+ *
+ * Functional behavior preserved 1:1 from prior version:
+ *   - 30s resend cooldown
+ *   - msg91Service.verifyOtp → authService.verifyOtp magic-code → auth.signIn
+ *   - same error mapping (network keeps digits, others reset)
+ *   - msg91Service.resendOtp on resend
+ *   - auto-verify when 4 digits entered
+ *
+ * Visuals: large airy header, four glass digit cells with focus halo
+ * driven by an animated border. Sat on the warm ambient background so
+ * the cells actually look like glass, not flat tiles.
+ */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  ActivityIndicator,
+  Pressable,
+  Animated,
+  Easing,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Feather';
 
 import { useAuth } from '../../context/AuthContext';
 import * as authService from '../../services/authService';
 import * as msg91Service from '../../services/msg91Service';
 import { maskPhone } from '../../utils/validateForm';
 
-const { Msg91Error } = msg91Service;
+import AmbientBackground from '../../components/glass/AmbientBackground';
+import GlassCard from '../../components/glass/GlassCard';
+import GlassButton from '../../components/glass/GlassButton';
+import { BackIcon } from '../../components/glass/Icons';
+import { palette, typography, spacing, fontStacks, radii } from '../../theme';
 
-const RESEND_COOLDOWN = 30; // seconds
+const { Msg91Error } = msg91Service;
+const RESEND_COOLDOWN = 30;
 
 /**
- * After MSG91 verifies the OTP we still need a backend JWT, so we call the
- * existing /api/auth/otp/verify endpoint with a known magic code. The backend
- * accepts this code in non-production builds and issues a JWT — OTP correctness
- * has already been guaranteed by MSG91. Once the backend is updated to accept
- * MSG91's access-token directly, replace this constant with that flow.
- *
- * NOTE: in a production backend (NODE_ENV === 'production') the magic code is
- * rejected, so this flow will fail until the proper exchange endpoint exists.
+ * Same magic-code path the prior implementation used. MSG91 verifies
+ * the OTP, then the backend mints a JWT via this code in non-prod
+ * builds. See prior implementation for the production replacement plan.
  */
 const BACKEND_SESSION_MAGIC_CODE = '1234';
 
@@ -43,20 +58,76 @@ if (!__DEV__) {
   );
 }
 
+const DigitCell = ({ value, focused, error }) => {
+  const halo = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(halo, {
+      toValue: focused ? 1 : 0,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  }, [focused, halo]);
+
+  const borderColor = error
+    ? palette.danger
+    : halo.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(255,255,255,0.6)', palette.primary],
+      });
+
+  return (
+    <Animated.View
+      style={[
+        styles.cellWrap,
+        {
+          borderColor,
+          backgroundColor: value
+            ? palette.glassWhiteStrong
+            : palette.glassWhite,
+        },
+      ]}
+    >
+      <Text style={styles.cellDigit}>{value}</Text>
+    </Animated.View>
+  );
+};
+
 const OTPVerification = ({ navigation, route }) => {
-  const { identifier = '', channel = 'sms' } = route?.params || {};
+  const { identifier = '' } = route?.params || {};
   const auth = useAuth();
 
   const [otp, setOtp] = useState(['', '', '', '']);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isDisabled, setIsDisabled] = useState(false); // true after max attempts
+  const [isDisabled, setIsDisabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(RESEND_COOLDOWN);
   const [isResendActive, setIsResendActive] = useState(false);
+  const [focusIndex, setFocusIndex] = useState(0);
 
   const inputRefs = useRef([]);
+  const scrollRef = useRef(null);
 
-  // ─── Countdown timer ───────────────────────────────────────────────────────
+  // Scroll the OTP card + Verify button into view when the user taps a
+  // digit cell. Without this the keyboard covers the bottom of the form.
+  const handleCellFocus = (index) => {
+    setFocusIndex(index);
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+
+  // Entrance animation
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [enter]);
+
+  // Countdown
   useEffect(() => {
     if (timerSeconds <= 0) {
       setIsResendActive(true);
@@ -66,14 +137,12 @@ const OTPVerification = ({ navigation, route }) => {
     return () => clearTimeout(t);
   }, [timerSeconds]);
 
-  // ─── OTP input handling ────────────────────────────────────────────────────
   const handleOtpChange = (value, index) => {
     if (isDisabled || isLoading) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // only last char (handles paste)
-    setOtp(newOtp);
+    const next = [...otp];
+    next[index] = value.slice(-1);
+    setOtp(next);
     setErrorMessage('');
-
     if (value && index < 3) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -87,7 +156,6 @@ const OTPVerification = ({ navigation, route }) => {
 
   const isOtpComplete = otp.every((d) => d !== '');
 
-  // ─── Verify OTP ────────────────────────────────────────────────────────────
   const handleVerify = useCallback(async () => {
     if (!isOtpComplete || isLoading || isDisabled) return;
 
@@ -95,32 +163,14 @@ const OTPVerification = ({ navigation, route }) => {
     setIsLoading(true);
     setErrorMessage('');
 
-    // Tracks whether the MSG91 step succeeded so the catch block can tell
-    // which side failed. If MSG91 verified the OTP but the backend then failed
-    // to mint a JWT, the OTP is already consumed — the user must request a
-    // fresh code via "Resend".
     let msg91Verified = false;
 
     try {
-      // MOCK OTP (backend) — replaced by MSG91 verify below. Commented out, not removed.
-      // const response = await authService.verifyOtp(identifier, otpString);
-
-      // 1) Verify the OTP with MSG91 (real verification). The service tracks
-      //    the active reqId from sendOtp internally — no need to pass phone.
       await msg91Service.verifyOtp(otpString);
       msg91Verified = true;
 
-      // 2) Mint a backend JWT. MSG91 has already verified the user, so we ask
-      //    the backend to issue a session via its accepted magic code.
       const response = await authService.verifyOtp(identifier, BACKEND_SESSION_MAGIC_CODE);
-      // response: { user, owner, token, isNewUser }
       await auth.signIn(response.token, response.user);
-
-      // No navigation.reset here — RootNavigator in App.tsx swaps the auth
-      // stack for either UserOnboarding or MainApp based on auth state +
-      // user.onboardingStep. Calling reset here would target the OUTGOING
-      // auth stack (which doesn't contain MainApp/UserOnboarding) and emit
-      // "action 'RESET' was not handled by any navigator" warnings.
     } catch (err) {
       const code = err?.code || '';
       let keepDigits = false;
@@ -139,11 +189,6 @@ const OTPVerification = ({ navigation, route }) => {
           err?.code === 'NETWORK_ERROR' || err?.code === 'NETWORK_TIMEOUT';
 
         if (isNetworkIssue) {
-          // Backend unreachable but MSG91 already verified the code.
-          // MSG91 sessions stay valid for a few minutes and verify is
-          // idempotent within the window — so let the user simply tap
-          // "Verify" again once the network is restored. Keep the digits,
-          // don't disable input, don't unlock resend (resend won't help).
           keepDigits = true;
           setErrorMessage(
             err?.code === 'NETWORK_TIMEOUT'
@@ -151,8 +196,6 @@ const OTPVerification = ({ navigation, route }) => {
               : "Can't reach the server. Check your connection and tap Verify to try again.",
           );
         } else {
-          // Backend was reached but rejected the request (4xx/5xx, etc.).
-          // The MSG91 OTP is consumed; the user must request a fresh code.
           const debugSuffix = __DEV__
             ? ` [${err?.code || err?.name || 'unknown'}${err?.http ? ` ${err.http}` : ''}]`
             : '';
@@ -191,9 +234,6 @@ const OTPVerification = ({ navigation, route }) => {
         setErrorMessage(err?.message || 'Verification failed. Please try again.');
       }
 
-      // Clear OTP on every error path except transient network failures —
-      // for those we keep the entry so the user can retry the same code on
-      // reconnect without re-typing.
       if (!keepDigits) {
         setOtp(['', '', '', '']);
         setTimeout(() => inputRefs.current[0]?.focus(), 100);
@@ -201,23 +241,19 @@ const OTPVerification = ({ navigation, route }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [otp, identifier, isOtpComplete, isLoading, isDisabled, auth, navigation]);
+  }, [otp, identifier, isOtpComplete, isLoading, isDisabled, auth]);
 
-  // Auto-verify when all 4 digits entered
+  // Auto-verify when complete
   useEffect(() => {
     if (isOtpComplete && !isLoading && !isDisabled) {
       handleVerify();
     }
-  }, [isOtpComplete]); // intentionally only on completion change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOtpComplete]);
 
-  // ─── Resend OTP ────────────────────────────────────────────────────────────
   const handleResend = async () => {
     if (!isResendActive || isLoading) return;
-
     try {
-      // MOCK OTP (backend) — replaced by MSG91 retry. Commented out, not removed.
-      // await authService.resendOtp(identifier, channel);
-
       await msg91Service.resendOtp();
       setOtp(['', '', '', '']);
       setErrorMessage('');
@@ -237,297 +273,245 @@ const OTPVerification = ({ navigation, route }) => {
     }
   };
 
-  // ─── UI ────────────────────────────────────────────────────────────────────
+  const cardSlide = enter.interpolate({ inputRange: [0, 1], outputRange: [40, 0] });
   const maskedPhone = identifier ? maskPhone(identifier) : '';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-        {/* Decorative Elements */}
-        <View style={styles.decorativeTopRight}>
-          <View style={styles.blobLarge} />
-          <View style={styles.blobSmall} />
-        </View>
-        <View style={styles.decorativeTopLeft}>
-          <View style={styles.blobMedium} />
-        </View>
-
-        {/* Back button — lets the user go back to SignIn to fix a typo
-            in their phone number. Wrapped in a top-anchored View so it
-            sits above the decorative blobs and the header copy. */}
-        <View style={styles.backRow}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Go back to edit phone number"
-            accessibilityRole="button"
+    <View style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <AmbientBackground>
+        <SafeAreaView style={styles.safe}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={0}
           >
-            <Icon name="chevron-left" size={22} color="#0F172A" />
-            <Text style={styles.backBtnText}>Edit number</Text>
-          </TouchableOpacity>
-        </View>
+            <ScrollView
+              ref={scrollRef}
+              contentContainerStyle={styles.scroll}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              automaticallyAdjustKeyboardInsets
+            >
+              {/* Top row */}
+              <View style={styles.topRow}>
+                <Pressable
+                  onPress={() => navigation.goBack()}
+                  hitSlop={10}
+                  style={styles.backBtn}
+                >
+                  <BackIcon color={palette.text} />
+                </Pressable>
+                <Text style={styles.brand}>PARK</Text>
+                <View style={{ width: 24 }} />
+              </View>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Enter Code</Text>
-          <Text style={styles.subtitle}>
-            A 4-digit code was sent to{'\n'}
-            <Text style={styles.phoneHighlight}>{maskedPhone || identifier}</Text>
-          </Text>
-        </View>
+              <Animated.View
+                style={{
+                  opacity: enter,
+                  transform: [{ translateY: cardSlide }],
+                }}
+              >
+                <View style={styles.headline}>
+                  <Text style={styles.eyebrow}>Verify</Text>
+                  <Text style={styles.title}>Enter the{'\n'}code.</Text>
+                  <Text style={styles.subtitle}>
+                    A 4-digit code was sent to{' '}
+                    <Text style={styles.phoneHighlight}>
+                      {maskedPhone || identifier}
+                    </Text>
+                  </Text>
+                </View>
 
-        {/* OTP Input */}
-        <View style={styles.otpContainer}>
-          {otp.map((digit, index) => (
-            <TextInput
-              key={index}
-              ref={(ref) => (inputRefs.current[index] = ref)}
-              style={[
-                styles.otpInput,
-                digit ? styles.otpInputFilled : null,
-                errorMessage ? styles.otpInputError : null,
-                isDisabled ? styles.otpInputDisabled : null,
-              ]}
-              value={digit}
-              onChangeText={(value) => handleOtpChange(value, index)}
-              onKeyPress={(e) => handleKeyPress(e, index)}
-              keyboardType="number-pad"
-              maxLength={1}
-              selectTextOnFocus
-              editable={!isDisabled && !isLoading}
-            />
-          ))}
-        </View>
+                <GlassCard radius={radii.lg} intensity={20} style={styles.card}>
+                  <View style={styles.cardInner}>
+                    {/* Cells row — visual cells overlay invisible inputs for
+                        styling control while keeping native keyboard behavior. */}
+                    <View style={styles.cellsRow}>
+                      {otp.map((digit, index) => (
+                        <View key={index} style={styles.cellSlot}>
+                          <DigitCell
+                            value={digit}
+                            focused={focusIndex === index}
+                            error={!!errorMessage && !isLoading}
+                          />
+                          <TextInput
+                            ref={(r) => (inputRefs.current[index] = r)}
+                            style={styles.hiddenInput}
+                            value={digit}
+                            onChangeText={(v) => handleOtpChange(v, index)}
+                            onKeyPress={(e) => handleKeyPress(e, index)}
+                            onFocus={() => handleCellFocus(index)}
+                            keyboardType="number-pad"
+                            maxLength={1}
+                            selectTextOnFocus
+                            editable={!isDisabled && !isLoading}
+                            caretHidden
+                          />
+                        </View>
+                      ))}
+                    </View>
 
-        {/* Error message */}
-        {errorMessage ? (
-          <Text
-            style={styles.errorText}
-            accessibilityRole="alert"
-            accessibilityLiveRegion="assertive"
-          >
-            {errorMessage}
-          </Text>
-        ) : null}
+                    {errorMessage ? (
+                      <Text
+                        style={styles.errorText}
+                        accessibilityRole="alert"
+                        accessibilityLiveRegion="assertive"
+                      >
+                        {errorMessage}
+                      </Text>
+                    ) : null}
 
-        {/* Resend */}
-        <View style={styles.resendContainer}>
-          {isResendActive ? (
-            <TouchableOpacity onPress={handleResend} disabled={isLoading}>
-              <Text style={styles.resendActiveText}>Resend Code</Text>
-            </TouchableOpacity>
-          ) : (
-            <Text style={styles.resendTimerText}>
-              Resend in <Text style={styles.timerHighlight}>{timerSeconds}s</Text>
-            </Text>
-          )}
-        </View>
+                    {/* Resend */}
+                    <View style={styles.resendRow}>
+                      {isResendActive ? (
+                        <Pressable onPress={handleResend} disabled={isLoading}>
+                          <Text style={styles.resendActive}>Resend code</Text>
+                        </Pressable>
+                      ) : (
+                        <Text style={styles.resendIdle}>
+                          Resend in{' '}
+                          <Text style={styles.resendTimer}>{timerSeconds}s</Text>
+                        </Text>
+                      )}
+                    </View>
 
-        {/* Verify Button */}
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            (!isOtpComplete || isDisabled) && styles.continueButtonDisabled,
-          ]}
-          onPress={handleVerify}
-          disabled={!isOtpComplete || isLoading || isDisabled}
-          activeOpacity={0.8}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <Text style={styles.continueButtonText}>Verify</Text>
-          )}
-        </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {/* Bottom Decorative — pinned to the SafeAreaView (outside the
-          KeyboardAvoidingView) so it doesn't ride up over the Verify
-          button when the keyboard opens. The keyboard simply covers it. */}
-      <View style={styles.decorativeBottom} pointerEvents="none">
-        <View style={styles.blobBottomRight} />
-        <View style={styles.blobBottomSmall} />
-      </View>
-    </SafeAreaView>
+                    <GlassButton
+                      label="Verify"
+                      onPress={handleVerify}
+                      disabled={!isOtpComplete || isDisabled}
+                      loading={isLoading}
+                      fullWidth
+                      style={{ marginTop: spacing.md }}
+                    />
+                  </View>
+                </GlassCard>
+              </Animated.View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </AmbientBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
+  safe: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
   },
-  keyboardView: {
-    flex: 1,
-    paddingHorizontal: 24,
-  },
-  backRow: {
-    paddingTop: 8,
-    paddingBottom: 4,
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   backBtn: {
-    flexDirection: 'row',
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    justifyContent: 'center',
   },
-  backBtnText: {
-    fontSize: 14,
-    color: '#0F172A',
-    fontWeight: '500',
-    marginLeft: 4,
+  brand: {
+    fontFamily: fontStacks.regular,
+    fontSize: 20,
+    fontWeight: '300',
+    letterSpacing: 4,
+    color: palette.text,
   },
-  decorativeTopRight: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
+  headline: {
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
   },
-  blobLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E8F5F4',
-  },
-  blobSmall: {
-    position: 'absolute',
-    top: 70,
-    right: 80,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#0D7377',
-  },
-  decorativeTopLeft: {
-    position: 'absolute',
-    top: 60,
-    left: -20,
-  },
-  blobMedium: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E8F5F4',
-  },
-  header: {
-    marginTop: 120,
-    marginBottom: 48,
-    alignItems: 'center',
+  eyebrow: {
+    ...typography.label,
+    color: palette.primary,
+    marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 12,
+    fontFamily: fontStacks.regular,
+    fontSize: 44,
+    fontWeight: '300',
+    letterSpacing: -1.5,
+    lineHeight: 48,
+    color: palette.text,
+    marginBottom: spacing.md,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 22,
+    ...typography.body,
+    color: palette.textMuted,
   },
   phoneHighlight: {
-    color: '#0D7377',
-    fontWeight: '600',
+    color: palette.text,
+    fontFamily: fontStacks.medium,
+    fontWeight: '500',
   },
-  otpContainer: {
+  card: { width: '100%' },
+  cardInner: { padding: spacing.lg + 4 },
+  cellsRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  cellSlot: {
+    width: 64,
+    height: 72,
+    position: 'relative',
+  },
+  cellWrap: {
+    flex: 1,
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
-    marginBottom: 16,
   },
-  otpInput: {
-    width: 60,
-    height: 60,
-    borderWidth: 2,
-    borderColor: '#0D7377',
-    borderRadius: 12,
-    fontSize: 24,
-    fontWeight: '700',
+  cellDigit: {
+    fontFamily: fontStacks.regular,
+    fontSize: 28,
+    fontWeight: '400',
+    color: palette.text,
+    letterSpacing: -1,
+  },
+  hiddenInput: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    color: 'transparent',
+    fontSize: 1,
     textAlign: 'center',
-    color: '#1A1A2E',
-    backgroundColor: '#FFFFFF',
-  },
-  otpInputFilled: {
-    backgroundColor: '#E8F5F4',
-  },
-  otpInputError: {
-    borderColor: '#EF4444',
-  },
-  otpInputDisabled: {
-    borderColor: '#D1D5DB',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
   },
   errorText: {
-    fontSize: 13,
-    color: '#EF4444',
+    fontSize: 12,
+    color: palette.danger,
     textAlign: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 8,
+    marginTop: spacing.sm,
   },
-  resendContainer: {
+  resendRow: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginTop: spacing.md,
   },
-  resendActiveText: {
+  resendActive: {
+    color: palette.text,
+    fontFamily: fontStacks.medium,
+    fontWeight: '500',
     fontSize: 14,
-    color: '#0D7377',
-    fontWeight: '600',
   },
-  resendTimerText: {
+  resendIdle: {
+    color: palette.textMuted,
+    fontFamily: fontStacks.regular,
     fontSize: 14,
-    color: '#6B7280',
   },
-  timerHighlight: {
-    color: '#0D7377',
-    fontWeight: '600',
-  },
-  continueButton: {
-    backgroundColor: '#0D7377',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 52,
-    marginBottom: 24,
-  },
-  continueButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  continueButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  decorativeBottom: {
-    position: 'absolute',
-    bottom: 40,
-    right: -20,
-  },
-  blobBottomRight: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#E8F5F4',
-  },
-  blobBottomSmall: {
-    position: 'absolute',
-    bottom: 60,
-    right: 70,
-    width: 25,
-    height: 25,
-    borderRadius: 12.5,
-    backgroundColor: '#0D7377',
+  resendTimer: {
+    color: palette.text,
+    fontFamily: fontStacks.medium,
+    fontWeight: '500',
   },
 });
 

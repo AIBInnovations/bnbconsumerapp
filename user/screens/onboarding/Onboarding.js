@@ -1,397 +1,324 @@
-import React, { useState, useRef } from 'react';
+/**
+ * Onboarding — three-slide horizontal carousel introducing the app.
+ * Implementation uses a paged horizontal ScrollView (rather than
+ * FlatList, which was rendering blank on this device under Fabric).
+ * Each slide shares the same structure: hero shape on top, copy
+ * block beneath. Skip / final "Begin" → SignIn.
+ */
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Dimensions,
-  FlatList,
+  ScrollView,
+  StatusBar,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path, Circle as SvgCircle } from 'react-native-svg';
+
+import GlassButton from '../../components/glass/GlassButton';
+import { palette, typography, spacing, fontStacks } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
-const slides = [
+const HERO = Math.min(width * 0.6, 260);
+
+const SLIDES = [
   {
-    id: '1',
-    title: 'Seamless Control,\nAnywhere, Anytime.',
-    buttonText: 'Move Forward',
-    illustration: 'house',
+    id: 's1',
+    accent: palette.primary,
+    accentSoft: '#CFE4E2',
+    eyebrow: 'Discover',
+    title: 'Spots, mapped\nbeautifully.',
+    body:
+      'A live map of garages and street parking near you — refreshed every few seconds.',
+    icon: 'pin',
   },
   {
-    id: '2',
-    title: 'Connect, Control, Thrive:\nYour Smart Home Journey\nBegins.',
-    buttonText: 'Get Start',
-    illustration: 'person',
+    id: 's2',
+    accent: '#1A1A2E',
+    accentSoft: '#D5D5DA',
+    eyebrow: 'Reserve',
+    title: 'Lock a slot\nin two taps.',
+    body:
+      'Reserve ahead, scan in, and skip the loop-around. Pay later if you stay longer.',
+    icon: 'check',
+  },
+  {
+    id: 's3',
+    accent: '#E5A23A',
+    accentSoft: '#F4DEB1',
+    eyebrow: 'Glide in',
+    title: 'Your spot\nfinds you.',
+    body:
+      'Pin your destination — we route you to the closest verified parking automatically.',
+    icon: 'car',
   },
 ];
 
+const HeroIcon = ({ name, color }) => {
+  const SIZE = HERO * 0.42;
+  if (name === 'pin') {
+    return (
+      <Svg width={SIZE} height={SIZE} viewBox="0 0 32 32" fill="none">
+        <Path
+          d="M16 30s-10-10.6-10-17a10 10 0 1 1 20 0c0 6.4-10 17-10 17z"
+          fill={color}
+        />
+        <SvgCircle cx={16} cy={13} r={4} fill="#FFFFFF" />
+      </Svg>
+    );
+  }
+  if (name === 'check') {
+    return (
+      <Svg width={SIZE} height={SIZE} viewBox="0 0 32 32" fill="none">
+        <Path
+          d="M5 17 l 7 7 L 27 9"
+          stroke={color}
+          strokeWidth={3.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    );
+  }
+  return (
+    <Svg width={SIZE} height={SIZE} viewBox="0 0 32 32" fill="none">
+      <Path
+        d="M6 20 h20 l-2-6 a3 3 0 0 0 -2.8 -2 H10.8 a3 3 0 0 0 -2.8 2 L6 20z"
+        fill={color}
+      />
+      <Path
+        d="M5 20 h22 v4 a1.5 1.5 0 0 1 -1.5 1.5 H24 a1.5 1.5 0 0 1 -1.5 -1.5 V23 h-13 v1 a1.5 1.5 0 0 1 -1.5 1.5 H6.5 a1.5 1.5 0 0 1 -1.5 -1.5 V20z"
+        fill={color}
+      />
+      <SvgCircle cx={11} cy={23} r={1.6} fill="#FFFFFF" />
+      <SvgCircle cx={21} cy={23} r={1.6} fill="#FFFFFF" />
+    </Svg>
+  );
+};
+
+const Hero = ({ accent, accentSoft, icon }) => (
+  <View style={styles.heroWrap}>
+    <View style={[styles.heroDisc, { backgroundColor: accent }]}>
+      <View style={[styles.heroIris, { backgroundColor: accentSoft }]} />
+      <View style={styles.heroIconWrap}>
+        <HeroIcon name={icon} color={accent} />
+      </View>
+    </View>
+    <View style={[styles.heroSatellite, { backgroundColor: accent }]} />
+    <View style={[styles.heroAccent, { backgroundColor: accentSoft }]} />
+  </View>
+);
+
+const Slide = ({ slide }) => (
+  <View style={styles.slide}>
+    <Hero accent={slide.accent} accentSoft={slide.accentSoft} icon={slide.icon} />
+    <View style={styles.copy}>
+      <Text style={[styles.eyebrow, { color: slide.accent }]}>{slide.eyebrow}</Text>
+      <Text style={styles.title}>{slide.title}</Text>
+      <Text style={styles.body}>{slide.body}</Text>
+    </View>
+  </View>
+);
+
 const Onboarding = ({ navigation }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef(null);
+  const [index, setIndex] = useState(0);
+  const scrollRef = useRef(null);
+
+  const handleScrollEnd = (e) => {
+    const i = Math.round(e.nativeEvent.contentOffset.x / width);
+    if (i !== index) setIndex(i);
+  };
 
   const handleNext = () => {
-    if (currentIndex < slides.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
+    if (index < SLIDES.length - 1) {
+      const next = index + 1;
+      scrollRef.current?.scrollTo({ x: next * width, animated: true });
+      setIndex(next);
     } else {
       navigation.navigate('SignIn');
     }
   };
 
-  const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index || 0);
-    }
-  }).current;
-
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
-
-  const HouseIllustration = () => (
-    <View style={styles.illustrationContainer}>
-      <View style={styles.houseFrame}>
-        {/* Roof */}
-        <View style={styles.roof}>
-          <View style={styles.roofTriangle} />
-          <View style={styles.chimney} />
-        </View>
-        {/* House Body */}
-        <View style={styles.houseBody}>
-          <View style={styles.window} />
-          <View style={styles.door}>
-            <View style={styles.doorKnob} />
-          </View>
-        </View>
-        {/* Temperature Badge */}
-        <View style={styles.tempBadge}>
-          <Text style={styles.tempText}>32° C</Text>
-        </View>
-      </View>
-    </View>
-  );
-
-  const PersonIllustration = () => (
-    <View style={styles.illustrationContainer}>
-      <View style={styles.couchScene}>
-        {/* Person on couch */}
-        <View style={styles.couch}>
-          <View style={styles.couchBack} />
-          <View style={styles.couchSeat} />
-        </View>
-        <View style={styles.person}>
-          <View style={styles.personHead} />
-          <View style={styles.personBody} />
-          <View style={styles.laptop} />
-        </View>
-        {/* Plant */}
-        <View style={styles.plant}>
-          <View style={styles.plantPot} />
-          <View style={styles.plantLeaf1} />
-          <View style={styles.plantLeaf2} />
-        </View>
-      </View>
-    </View>
-  );
-
-  const renderSlide = ({ item, index }) => (
-    <View style={styles.slide}>
-      {/* Decorative Elements */}
-      <View style={styles.decorativeTopRight}>
-        <View style={styles.blobLarge} />
-        <View style={styles.blobSmall} />
-      </View>
-
-      {/* Illustration */}
-      {item.illustration === 'house' ? <HouseIllustration /> : <PersonIllustration />}
-
-      {/* Title */}
-      <Text style={styles.title}>{item.title}</Text>
-
-      {/* Pagination Dots */}
-      <View style={styles.pagination}>
-        {slides.map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              i === currentIndex ? styles.dotActive : styles.dotInactive,
-            ]}
-          />
-        ))}
-      </View>
-
-      {/* Button */}
-      <TouchableOpacity style={styles.button} onPress={handleNext}>
-        <Text style={styles.buttonText}>{item.buttonText}</Text>
-      </TouchableOpacity>
-
-      {/* Bottom Decorative */}
-      <View style={styles.decorativeBottomLeft}>
-        <View style={styles.blobBottom} />
-      </View>
-    </View>
-  );
+  const handleSkip = () => navigation.navigate('SignIn');
 
   return (
-    <SafeAreaView style={styles.container}>
-      <FlatList
-        ref={flatListRef}
-        data={slides}
-        renderItem={renderSlide}
-        keyExtractor={(item) => item.id}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-      />
-    </SafeAreaView>
+    <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <SafeAreaView style={styles.safe}>
+        {/* Top bar */}
+        <View style={styles.topBar}>
+          <Text style={styles.brand}>PARK</Text>
+          <Pressable hitSlop={10} onPress={handleSkip}>
+            <Text style={styles.skip}>Skip</Text>
+          </Pressable>
+        </View>
+
+        {/* Carousel — paged horizontal ScrollView */}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleScrollEnd}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {SLIDES.map((s) => (
+            <Slide key={s.id} slide={s} />
+          ))}
+        </ScrollView>
+
+        {/* Bottom bar: dots + CTA */}
+        <View style={styles.bottom}>
+          <View style={styles.dots}>
+            {SLIDES.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.dot,
+                  i === index ? styles.dotActive : styles.dotInactive,
+                ]}
+              />
+            ))}
+          </View>
+          <GlassButton
+            label={index === SLIDES.length - 1 ? 'Begin' : 'Continue'}
+            onPress={handleNext}
+            variant="solid"
+          />
+        </View>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: palette.bg,
   },
+  safe: { flex: 1 },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  brand: {
+    fontFamily: fontStacks.regular,
+    fontSize: 22,
+    fontWeight: '300',
+    letterSpacing: 4,
+    color: palette.text,
+  },
+  skip: {
+    ...typography.bodySmall,
+    color: palette.textMuted,
+    fontFamily: fontStacks.medium,
+    fontWeight: '500',
+  },
+
+  scroll: { flex: 1 },
+  scrollContent: { alignItems: 'stretch' },
+
   slide: {
-    width: width,
-    flex: 1,
-    paddingHorizontal: 24,
+    width,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  decorativeTopRight: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-  },
-  blobLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E8F5F4',
-  },
-  blobSmall: {
-    position: 'absolute',
-    top: 70,
-    right: 80,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#0D7377',
-  },
-  illustrationContainer: {
+
+  heroWrap: {
+    width: HERO * 1.4,
+    height: HERO * 1.4,
+    marginBottom: spacing.xxl,
     alignItems: 'center',
-    marginBottom: 40,
-    height: 200,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  heroDisc: {
+    width: HERO,
+    height: HERO,
+    borderRadius: HERO / 2,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  // House Illustration Styles
-  houseFrame: {
-    alignItems: 'center',
-  },
-  roof: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  roofTriangle: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 70,
-    borderRightWidth: 70,
-    borderBottomWidth: 50,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#0D7377',
-  },
-  chimney: {
+  heroIris: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 20,
-    height: 35,
-    backgroundColor: '#0D7377',
+    width: HERO * 0.7,
+    height: HERO * 0.7,
+    borderRadius: HERO * 0.35,
+    opacity: 0.55,
   },
-  houseBody: {
-    width: 120,
-    height: 80,
-    backgroundColor: '#E8F5F4',
-    marginTop: -2,
-    flexDirection: 'row',
+  heroIconWrap: {
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: 15,
-  },
-  window: {
-    width: 30,
-    height: 30,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#0D7377',
-  },
-  door: {
-    width: 28,
-    height: 45,
-    backgroundColor: '#0D7377',
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingRight: 5,
   },
-  doorKnob: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FFFFFF',
-  },
-  tempBadge: {
+  heroSatellite: {
     position: 'absolute',
-    top: -10,
-    right: -40,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    top: HERO * 0.1,
+    right: HERO * 0.05,
+    width: HERO * 0.2,
+    height: HERO * 0.2,
+    borderRadius: HERO * 0.1,
+    opacity: 0.9,
   },
-  tempText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0D7377',
-  },
-  // Person Illustration Styles
-  couchScene: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  couch: {
-    marginRight: -30,
-  },
-  couchBack: {
-    width: 100,
-    height: 50,
-    backgroundColor: '#0D7377',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  couchSeat: {
-    width: 120,
-    height: 25,
-    backgroundColor: '#0D7377',
-    borderRadius: 8,
-    marginLeft: -10,
-  },
-  person: {
-    alignItems: 'center',
-    marginBottom: 25,
-    marginLeft: -60,
-  },
-  personHead: {
-    width: 25,
-    height: 25,
-    borderRadius: 12.5,
-    backgroundColor: '#F5DEB3',
-  },
-  personBody: {
-    width: 35,
-    height: 40,
-    backgroundColor: '#E8F5F4',
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    marginTop: -3,
-  },
-  laptop: {
-    width: 30,
-    height: 20,
-    backgroundColor: '#1A1A2E',
-    borderRadius: 3,
+  heroAccent: {
     position: 'absolute',
-    bottom: 10,
+    bottom: HERO * 0.18,
+    left: HERO * 0.02,
+    width: HERO * 0.12,
+    height: HERO * 0.12,
+    borderRadius: HERO * 0.06,
   },
-  plant: {
-    marginLeft: 20,
-    alignItems: 'center',
+
+  copy: {
+    width: '100%',
+    alignItems: 'flex-start',
   },
-  plantPot: {
-    width: 30,
-    height: 25,
-    backgroundColor: '#D4A574',
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  plantLeaf1: {
-    position: 'absolute',
-    top: -20,
-    left: 5,
-    width: 15,
-    height: 25,
-    backgroundColor: '#0D7377',
-    borderRadius: 10,
-    transform: [{ rotate: '-20deg' }],
-  },
-  plantLeaf2: {
-    position: 'absolute',
-    top: -25,
-    right: 5,
-    width: 15,
-    height: 30,
-    backgroundColor: '#0D7377',
-    borderRadius: 10,
-    transform: [{ rotate: '15deg' }],
+  eyebrow: {
+    ...typography.label,
+    marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    textAlign: 'center',
-    lineHeight: 34,
-    marginBottom: 30,
+    fontFamily: fontStacks.regular,
+    fontSize: 36,
+    fontWeight: '300',
+    letterSpacing: -1,
+    lineHeight: 40,
+    color: palette.text,
+    marginBottom: spacing.md,
   },
-  pagination: {
+  body: {
+    ...typography.body,
+    color: palette.textMuted,
+  },
+
+  bottom: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 30,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dots: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   dot: {
-    width: 8,
     height: 8,
     borderRadius: 4,
-    marginHorizontal: 4,
+    marginRight: 6,
   },
-  dotActive: {
-    backgroundColor: '#0D7377',
-    width: 24,
-  },
-  dotInactive: {
-    backgroundColor: '#E8F5F4',
-  },
-  button: {
-    backgroundColor: '#0D7377',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginHorizontal: 20,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  decorativeBottomLeft: {
-    position: 'absolute',
-    bottom: 20,
-    left: -30,
-  },
-  blobBottom: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#E8F5F4',
-  },
+  dotActive: { width: 28, backgroundColor: palette.text },
+  dotInactive: { width: 8, backgroundColor: palette.text, opacity: 0.25 },
 });
 
 export default Onboarding;

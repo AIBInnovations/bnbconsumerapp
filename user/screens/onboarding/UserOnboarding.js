@@ -216,6 +216,7 @@ const UserOnboarding = ({ navigation }) => {
   };
 
   const handleSkip = () => {
+    if (isSubmitting) return;
     AppAlert.alert(
       'Skip Setup',
       'You can complete your profile later from settings.',
@@ -223,17 +224,20 @@ const UserOnboarding = ({ navigation }) => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Skip',
-          onPress: async () => {
-            // Skip without saving — still mark as completed so they land on home
-            try {
-              const response = await userService.updateProfile({ legalName: '', notificationBooking: true });
-              await AsyncStorage.removeItem(DRAFT_KEY);
-              // Update auth context → RootNavigator automatically switches to main stack
-              auth.updateUser(response.user);
-            } catch {
-              // If offline, force onboardingStep locally so navigation still works
-              auth.updateUser({ onboardingStep: 'completed' });
-            }
+          onPress: () => {
+            // Advance the user immediately. RootNavigator re-renders into
+            // MainApp the moment onboardingStep flips to 'completed', so the
+            // user never sees a stuck loading state — even if the network
+            // is dead. Persistence happens in the background.
+            auth.updateUser({ onboardingStep: 'completed' });
+            AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
+            const payload = fullName.trim()
+              ? { legalName: fullName.trim(), notificationBooking: true }
+              : { notificationBooking: true };
+            userService.updateProfile(payload).catch(() => {
+              // Server didn't accept the skip — that's fine, the user has
+              // already moved on. They can re-enter details from Profile.
+            });
           },
         },
       ]
@@ -328,11 +332,6 @@ const UserOnboarding = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Decorative */}
-        <View style={styles.decorativeTopRight}>
-          <View style={styles.blobLarge} />
-        </View>
-
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Complete Your Profile</Text>
@@ -472,7 +471,12 @@ const UserOnboarding = ({ navigation }) => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.skipButton} onPress={handleSkip} disabled={isSubmitting}>
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={handleSkip}
+            disabled={isSubmitting}
+            activeOpacity={0.7}
+          >
             <Text style={styles.skipButtonText}>Skip for now</Text>
           </TouchableOpacity>
         </View>
@@ -488,8 +492,6 @@ const UserOnboarding = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
-  decorativeTopRight: { position: 'absolute', top: -40, right: -40 },
-  blobLarge: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#E8F5F4' },
   header: { marginTop: 20, marginBottom: 20 },
   title: { fontSize: 26, fontWeight: '700', color: '#1A1A2E', marginBottom: 8 },
   subtitle: { fontSize: 14, color: '#6B7280' },

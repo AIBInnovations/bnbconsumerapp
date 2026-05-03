@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { palette, fontStacks } from '../../theme';
 
 // FAQ Data
 const faqData = [
@@ -592,30 +593,32 @@ const HelpSupportPage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: palette.bg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'transparent',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A2E',
+    fontFamily: fontStacks.regular,
+    fontSize: 22,
+    fontWeight: '300',
+    letterSpacing: -0.4,
+    color: palette.text,
   },
   headerRight: {
     width: 40,
@@ -714,7 +717,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     borderRadius: 12,
     paddingVertical: 14,
     gap: 8,
@@ -732,13 +735,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     borderWidth: 1.5,
-    borderColor: '#1A73E8',
+    borderColor: '#0D7377',
     gap: 8,
   },
   secondaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   ticketBadge: {
     backgroundColor: '#EF4444',
@@ -835,7 +838,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   categoryChipActive: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   categoryChipText: {
     fontSize: 13,
@@ -869,7 +872,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     borderRadius: 12,
     paddingVertical: 16,
     marginTop: 24,

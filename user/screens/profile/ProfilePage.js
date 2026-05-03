@@ -20,6 +20,8 @@ import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/AuthContext';
 import * as vehicleService from '../../services/vehicleService';
 import * as userService from '../../services/userService';
+import * as bookingService from '../../services/bookingService';
+import { palette, fontStacks } from '../../theme';
 
 // Payment methods — stays mock (no backend support)
 const initialPaymentMethods = [
@@ -88,11 +90,16 @@ const ProfilePage = ({ navigation }) => {
   });
   const [vehicleSaving, setVehicleSaving] = useState(false);
 
-  // Notifications — 2 backend-persisted, 2 local-only
+  // Notifications — 2 backend-persisted, 4 local-only
   const [notifBooking, setNotifBooking] = useState(user?.notificationBooking ?? true);
   const [notifPromotion, setNotifPromotion] = useState(user?.notificationPromotion ?? false);
   const [notifParkingAlerts, setNotifParkingAlerts] = useState(true);
   const [notifExpiryReminders, setNotifExpiryReminders] = useState(true);
+  const [notifPaymentConfirm, setNotifPaymentConfirm] = useState(true);
+  const [notifNewsletter, setNotifNewsletter] = useState(false);
+
+  // Stats (bookings count, total spent)
+  const [stats, setStats] = useState({ totalBookings: 0, totalSpent: 0, hoursParked: 0 });
 
   // TODO: fetch payment methods from API; mock removed
   const [paymentMethods, setPaymentMethods] = useState(/* initialPaymentMethods */ []);
@@ -112,13 +119,47 @@ const ProfilePage = ({ navigation }) => {
       .finally(() => setIsLoadingVehicles(false));
   }, [user?.id]);
 
+  // Load booking stats on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    bookingService.getUserBookings(user.id, { page: 1, limit: 100 })
+      .then(res => {
+        const list = res?.bookings || [];
+        const totalBookings = list.length;
+        const totalSpent = list.reduce((s, b) => s + (Number(b.totalAmount) || 0), 0);
+        const hoursParked = list.reduce((s, b) => {
+          if (!b.startTime || !b.endTime) return s;
+          const ms = new Date(b.endTime) - new Date(b.startTime);
+          return s + Math.max(0, ms / 3600000);
+        }, 0);
+        setStats({ totalBookings, totalSpent, hoursParked: Math.round(hoursParked) });
+      })
+      .catch(() => { /* keep zero stats */ });
+  }, [user?.id]);
+
+  // First-letter initials for avatar fallback
+  const initials = (() => {
+    const name = (fullName || user?.email || '').trim();
+    if (!name) return '?';
+    const parts = name.split(/\s+/);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  })();
+
+  const handleChangePhoto = () => {
+    AppAlert.alert(
+      'Profile Photo',
+      'Photo upload is coming soon. We\'ll let you know when it\'s ready.'
+    );
+  };
+
   // Calculate profile completion using real data
   const calculateCompletion = () => {
     let completed = 0;
     if (fullName) completed++;
     if (user?.email) completed++;
     if (user?.phone) completed++;
-    if (user?.profilePictureUrl) completed++;
+    if (user?.profileImage || user?.profilePictureUrl) completed++;
     if (vehicles.length > 0) completed++;
     if (paymentMethods.length > 0) completed++;
     return Math.round((completed / 6) * 100);
@@ -315,6 +356,74 @@ const ProfilePage = ({ navigation }) => {
     </View>
   );
 
+  // Render hero (avatar + greeting + member badge)
+  const renderHero = () => {
+    const avatarUri = user?.profileImage || user?.profilePictureUrl;
+    const memberSince = user?.createdAt
+      ? new Date(user.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
+      : null;
+    return (
+      <View style={styles.hero}>
+        <View style={styles.heroAvatarWrap}>
+          <View style={styles.heroAvatar}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.heroAvatarImage} />
+            ) : (
+              <Text style={styles.heroAvatarInitials}>{initials}</Text>
+            )}
+          </View>
+          <TouchableOpacity
+            style={styles.heroAvatarEdit}
+            onPress={handleChangePhoto}
+            activeOpacity={0.85}
+          >
+            <Icon name="camera" size={14} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.heroName} numberOfLines={1}>
+          {fullName || 'Welcome'}
+        </Text>
+        {user?.email ? (
+          <Text style={styles.heroEmail} numberOfLines={1}>{user.email}</Text>
+        ) : null}
+
+        <View style={styles.heroBadges}>
+          {memberSince ? (
+            <View style={styles.heroBadge}>
+              <Icon name="calendar" size={12} color="#1A73E8" />
+              <Text style={styles.heroBadgeText}>Member since {memberSince}</Text>
+            </View>
+          ) : null}
+          <View style={[styles.heroBadge, styles.heroBadgeGold]}>
+            <MaterialIcon name="crown" size={12} color="#B45309" />
+            <Text style={[styles.heroBadgeText, { color: '#B45309' }]}>
+              {user?.subscriptionTier || 'Free'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  // Render stats row (bookings, hours, spend)
+  const renderStats = () => (
+    <View style={styles.statsRow}>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{stats.totalBookings}</Text>
+        <Text style={styles.statLabel}>Bookings</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{stats.hoursParked}h</Text>
+        <Text style={styles.statLabel}>Parked</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>₹{stats.totalSpent.toLocaleString('en-IN')}</Text>
+        <Text style={styles.statLabel}>Total Spent</Text>
+      </View>
+    </View>
+  );
+
   // Render profile completion
   const renderProfileCompletion = () => {
     const completion = calculateCompletion();
@@ -360,20 +469,6 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         )}
-      </View>
-
-      {/* Profile Picture */}
-      <View style={styles.profilePictureContainer}>
-        <View style={styles.profilePicture}>
-          {user?.profileImage ? (
-            <Image
-              source={{ uri: user.profileImage }}
-              style={styles.profilePictureImage}
-            />
-          ) : (
-            <Icon name="user" size={48} color="#1A73E8" />
-          )}
-        </View>
       </View>
 
       {/* Personal Info Fields */}
@@ -623,7 +718,7 @@ const ProfilePage = ({ navigation }) => {
             value={notifBooking}
             onValueChange={handleToggleBooking}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifBooking ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifBooking ? '#0D7377' : '#9CA3AF'}
           />
         </View>
 
@@ -633,10 +728,10 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.notificationText}>Payment Confirmations</Text>
           </View>
           <Switch
-            value={notifBooking}
-            onValueChange={handleToggleBooking}
+            value={notifPaymentConfirm}
+            onValueChange={setNotifPaymentConfirm}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifBooking ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifPaymentConfirm ? '#0D7377' : '#9CA3AF'}
           />
         </View>
 
@@ -649,7 +744,7 @@ const ProfilePage = ({ navigation }) => {
             value={notifParkingAlerts}
             onValueChange={setNotifParkingAlerts}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifParkingAlerts ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifParkingAlerts ? '#0D7377' : '#9CA3AF'}
           />
         </View>
 
@@ -662,7 +757,7 @@ const ProfilePage = ({ navigation }) => {
             value={notifExpiryReminders}
             onValueChange={setNotifExpiryReminders}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifExpiryReminders ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifExpiryReminders ? '#0D7377' : '#9CA3AF'}
           />
         </View>
 
@@ -675,7 +770,7 @@ const ProfilePage = ({ navigation }) => {
             value={notifPromotion}
             onValueChange={handleTogglePromotion}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifPromotion ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifPromotion ? '#0D7377' : '#9CA3AF'}
           />
         </View>
 
@@ -685,10 +780,10 @@ const ProfilePage = ({ navigation }) => {
             <Text style={styles.notificationText}>Newsletter</Text>
           </View>
           <Switch
-            value={notifPromotion}
-            onValueChange={handleTogglePromotion}
+            value={notifNewsletter}
+            onValueChange={setNotifNewsletter}
             trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifPromotion ? '#1A73E8' : '#9CA3AF'}
+            thumbColor={notifNewsletter ? '#0D7377' : '#9CA3AF'}
           />
         </View>
       </View>
@@ -706,8 +801,8 @@ const ProfilePage = ({ navigation }) => {
         style={styles.quickLinkItem}
         onPress={() => navigation.navigate('Subscription')}
       >
-        <View style={[styles.quickLinkIcon, { backgroundColor: '#8B5CF615' }]}>
-          <Icon name="award" size={20} color="#8B5CF6" />
+        <View style={[styles.quickLinkIcon, { backgroundColor: '#8B5CF6' }]}>
+          <Icon name="award" size={20} color="#FFFFFF" />
         </View>
         <View style={styles.quickLinkContent}>
           <Text style={styles.quickLinkTitle}>Subscription</Text>
@@ -716,13 +811,21 @@ const ProfilePage = ({ navigation }) => {
         <Icon name="chevron-right" size={20} color="#9CA3AF" />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.quickLinkItem}>
-        <View style={[styles.quickLinkIcon, { backgroundColor: '#05966915' }]}>
-          <Icon name="shield" size={20} color="#059669" />
+      <TouchableOpacity
+        style={styles.quickLinkItem}
+        onPress={() =>
+          AppAlert.alert(
+            'Security',
+            'You sign in with a one-time code on +91 ' + (user?.phone || '—') + '. Password-based sign-in is not used.'
+          )
+        }
+      >
+        <View style={[styles.quickLinkIcon, { backgroundColor: '#059669' }]}>
+          <Icon name="shield" size={20} color="#FFFFFF" />
         </View>
         <View style={styles.quickLinkContent}>
           <Text style={styles.quickLinkTitle}>Security</Text>
-          <Text style={styles.quickLinkSubtitle}>Password & authentication</Text>
+          <Text style={styles.quickLinkSubtitle}>OTP-based sign-in</Text>
         </View>
         <Icon name="chevron-right" size={20} color="#9CA3AF" />
       </TouchableOpacity>
@@ -731,8 +834,8 @@ const ProfilePage = ({ navigation }) => {
         style={styles.quickLinkItem}
         onPress={() => navigation.navigate('HelpSupport')}
       >
-        <View style={[styles.quickLinkIcon, { backgroundColor: '#2563EB15' }]}>
-          <Icon name="help-circle" size={20} color="#2563EB" />
+        <View style={[styles.quickLinkIcon, { backgroundColor: '#2563EB' }]}>
+          <Icon name="help-circle" size={20} color="#FFFFFF" />
         </View>
         <View style={styles.quickLinkContent}>
           <Text style={styles.quickLinkTitle}>Help & Support</Text>
@@ -745,8 +848,8 @@ const ProfilePage = ({ navigation }) => {
         style={styles.quickLinkItem}
         onPress={() => navigation.navigate('About')}
       >
-        <View style={[styles.quickLinkIcon, { backgroundColor: '#6B728015' }]}>
-          <Icon name="info" size={20} color="#6B7280" />
+        <View style={[styles.quickLinkIcon, { backgroundColor: '#6B7280' }]}>
+          <Icon name="info" size={20} color="#FFFFFF" />
         </View>
         <View style={styles.quickLinkContent}>
           <Text style={styles.quickLinkTitle}>About</Text>
@@ -761,7 +864,7 @@ const ProfilePage = ({ navigation }) => {
   const renderLogout = () => (
     <View style={styles.logoutSection}>
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Icon name="log-out" size={20} color="#EF4444" />
+        <Icon name="log-out" size={20} color="#FFFFFF" />
         <Text style={styles.logoutText}>Log Out</Text>
       </TouchableOpacity>
       <Text style={styles.versionText}>Version 1.0.0</Text>
@@ -1000,7 +1103,7 @@ const ProfilePage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={palette.bg} />
 
       {renderHeader()}
 
@@ -1009,6 +1112,8 @@ const ProfilePage = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
+        {renderHero()}
+        {renderStats()}
         {renderProfileCompletion()}
         {renderProfileSection()}
         {renderVehiclesSection()}
@@ -1028,55 +1133,177 @@ const ProfilePage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: palette.bg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'transparent',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.95)',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontFamily: fontStacks.regular,
+    fontSize: 22,
+    fontWeight: '300',
+    letterSpacing: -0.3,
+    color: palette.text,
   },
   settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FEF3C7',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.95)',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 45,
+    paddingBottom: 110,
   },
 
-  // Profile Completion
-  completionContainer: {
-    backgroundColor: '#FFFFFF',
+  // Hero header
+  hero: {
+    backgroundColor: 'transparent',
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingTop: 12,
+    paddingBottom: 16,
+    paddingHorizontal: 0,
+    alignItems: 'center',
+  },
+  heroAvatarWrap: {
+    width: 96,
+    height: 96,
+    marginBottom: 12,
+  },
+  heroAvatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#E8F5F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  heroAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroAvatarInitials: {
+    fontFamily: fontStacks.regular,
+    fontSize: 38,
+    fontWeight: '300',
+    letterSpacing: -1,
+    color: palette.primary,
+  },
+  heroAvatarEdit: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#0D7377',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  heroName: {
+    fontFamily: fontStacks.regular,
+    fontSize: 26,
+    fontWeight: '400',
+    letterSpacing: -0.5,
+    color: palette.text,
+    maxWidth: '100%',
+  },
+  heroEmail: {
+    fontFamily: fontStacks.regular,
+    fontSize: 13,
+    color: palette.textMuted,
+    marginTop: 4,
+    maxWidth: '100%',
+  },
+  heroBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E8F5F4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  heroBadgeGold: {
+    backgroundColor: '#FEF3C7',
+  },
+  heroBadgeText: {
+    fontFamily: fontStacks.medium,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    color: palette.primary,
+  },
+
+  // Stats row
+  statsRow: {
+    flexDirection: 'row',
     marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    marginTop: 12,
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontFamily: fontStacks.regular,
+    fontSize: 20,
+    fontWeight: '400',
+    letterSpacing: -0.3,
+    color: palette.text,
+  },
+  statLabel: {
+    fontFamily: fontStacks.regular,
+    fontSize: 11,
+    color: palette.textMuted,
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+
+  // Profile Completion — flat block on the page bg, no card fill.
+  completionContainer: {
+    backgroundColor: 'transparent',
+    marginHorizontal: 20,
+    marginTop: 12,
+    padding: 0,
   },
   completionHeader: {
     flexDirection: 'row',
@@ -1092,7 +1319,7 @@ const styles = StyleSheet.create({
   completionPercentage: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#0D7377',
   },
   progressBarContainer: {
     height: 8,
@@ -1102,7 +1329,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     borderRadius: 4,
   },
   completionHint: {
@@ -1111,15 +1338,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  // Section styles
+  // Section — flat block on the page bg. No white fill, no shadow,
+  // no rounded card. Just spaced sections of content, separated by
+  // spacing only. (Removed the "card inside card" feel the user kept
+  // calling a "white square".)
   section: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
+    backgroundColor: 'transparent',
+    marginHorizontal: 20,
     marginTop: 16,
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    padding: 0,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1128,14 +1355,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontFamily: fontStacks.medium,
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.2,
+    color: palette.text,
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1143,7 +1372,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
     marginLeft: 4,
   },
   cancelButton: {
@@ -1158,7 +1387,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1166,7 +1395,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
     marginLeft: 4,
   },
 
@@ -1179,7 +1408,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#E8F5F4',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -1200,7 +1429,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
@@ -1222,14 +1451,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   infoIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    backgroundColor: '#EBF5FF',
+    borderRadius: 20,
+    backgroundColor: 'rgba(13, 115, 119, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1268,19 +1495,18 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 48,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    backgroundColor: palette.bg,
+    borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#1F2937',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    color: palette.text,
+    borderWidth: 0,
   },
   inputReadOnly: {
     color: '#9CA3AF',
   },
   saveButton: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -1295,20 +1521,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // Vehicle Card
+  // Vehicle row — no inner background. The icon-circle + text + actions
+  // sit directly on the parent section card with a subtle bottom rule.
   vehicleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    marginBottom: 0,
   },
   vehicleIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#7C3AED15',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(13, 115, 119, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1333,7 +1559,7 @@ const styles = StyleSheet.create({
   vehicleRegistration: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
     marginTop: 4,
   },
   vehicleActions: {
@@ -1343,8 +1569,8 @@ const styles = StyleSheet.create({
   vehicleActionButton: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1372,7 +1598,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(13, 115, 119, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -1392,7 +1618,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
@@ -1404,19 +1630,19 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  // Payment Card
+  // Payment row — same treatment as vehicleCard: transparent, no
+  // nested fill, just a row of content on the parent section card.
   paymentCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    marginBottom: 0,
   },
   paymentIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1453,13 +1679,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#1A73E8',
+    borderColor: '#0D7377',
     marginTop: 4,
   },
   manageButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A73E8',
+    color: '#0D7377',
     marginLeft: 8,
   },
 
@@ -1472,8 +1698,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   notificationInfo: {
     flexDirection: 'row',
@@ -1490,13 +1714,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   quickLinkIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1515,10 +1737,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Logout
+  // Logout — prominent solid pill with the same warm-on-dark feel as
+  // the book CTAs across the app. Lifted shadow so it reads as the
+  // primary destructive action on the page.
   logoutSection: {
-    marginHorizontal: 16,
-    marginTop: 24,
+    marginHorizontal: 24,
+    marginTop: 32,
     alignItems: 'center',
   },
   logoutButton: {
@@ -1526,20 +1750,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    paddingVertical: 16,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    backgroundColor: palette.text,
+    borderRadius: 999,
+    shadowColor: '#0F2828',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+    elevation: 6,
   },
   logoutText: {
+    fontFamily: fontStacks.medium,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#EF4444',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    color: '#FFFFFF',
     marginLeft: 10,
   },
   versionText: {
+    fontFamily: fontStacks.regular,
     fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 16,
+    color: palette.textSubtle,
+    marginTop: 18,
+    letterSpacing: 0.4,
   },
 
   // Modal styles
@@ -1613,7 +1847,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1636,7 +1870,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   vehicleTypeButtonActive: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#0D7377',
   },
   vehicleTypeText: {
     fontSize: 14,
