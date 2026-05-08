@@ -52,8 +52,8 @@ const subscriptionPlans = [
       { name: 'Premium Support', included: true, icon: 'headphones' },
       { name: 'No Ads', included: true, icon: 'eye-off' },
     ],
-    color: '#0D7377',
-    gradient: ['#4285F4', '#0D7377'],
+    color: '#FF2E40',
+    gradient: ['#4285F4', '#FF2E40'],
     popular: true,
   },
   {
@@ -244,7 +244,7 @@ const SubscriptionPage = ({ navigation }) => {
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Icon name="arrow-left" size={24} color="#1F2937" />
+        <Icon name="arrow-left" size={24} color="#FFFFFF" />
       </TouchableOpacity>
       <View style={styles.headerCenter}>
         <Text style={styles.headerTitle}>Premium Features</Text>
@@ -254,7 +254,7 @@ const SubscriptionPage = ({ navigation }) => {
         style={styles.helpButton}
         onPress={() => {}}
       >
-        <Icon name="help-circle" size={24} color="#6B7280" />
+        <Icon name="help-circle" size={24} color="#A1A1AA" />
       </TouchableOpacity>
     </View>
   );
@@ -437,7 +437,7 @@ const SubscriptionPage = ({ navigation }) => {
       <View style={styles.currentStatusContainer}>
         <View style={styles.currentStatusHeader}>
           <Text style={styles.currentStatusTitle}>Your Subscription</Text>
-          <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
+          <View style={[styles.statusBadge, { backgroundColor: 'rgba(124,224,107,0.12)' }]}>
             <Text style={[styles.statusBadgeText, { color: '#059669' }]}>Active</Text>
           </View>
         </View>
@@ -498,7 +498,7 @@ const SubscriptionPage = ({ navigation }) => {
         <TextInput
           style={styles.promoInput}
           placeholder="Enter promo code"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#6B7280"
           value={promoCode}
           onChangeText={setPromoCode}
           autoCapitalize="characters"
@@ -558,7 +558,7 @@ const SubscriptionPage = ({ navigation }) => {
             </View>
           )}
           <TouchableOpacity style={styles.paymentMethodMenu}>
-            <Icon name="more-vertical" size={18} color="#6B7280" />
+            <Icon name="more-vertical" size={18} color="#A1A1AA" />
           </TouchableOpacity>
         </View>
       ))}
@@ -582,7 +582,7 @@ const SubscriptionPage = ({ navigation }) => {
             <Icon
               name={expandedFaq === faq.id ? 'chevron-up' : 'chevron-down'}
               size={20}
-              color="#6B7280"
+              color="#A1A1AA"
             />
           </View>
           {expandedFaq === faq.id && (
@@ -609,7 +609,7 @@ const SubscriptionPage = ({ navigation }) => {
               style={styles.modalCloseButton}
               onPress={() => setShowPaymentModal(false)}
             >
-              <Icon name="x" size={24} color="#6B7280" />
+              <Icon name="x" size={24} color="#A1A1AA" />
             </TouchableOpacity>
           </View>
 
@@ -661,7 +661,7 @@ const SubscriptionPage = ({ navigation }) => {
                 <Text style={styles.paymentMethodSelectLabel}>Payment Method</Text>
                 {paymentMethods.filter(m => m.isDefault).map((method) => (
                   <View key={method.id} style={styles.selectedPaymentMethod}>
-                    <Icon name="credit-card" size={20} color="#1F2937" />
+                    <Icon name="credit-card" size={20} color="#FFFFFF" />
                     <Text style={styles.selectedPaymentText}>
                       {method.type.charAt(0).toUpperCase() + method.type.slice(1)} ****{method.last4}
                     </Text>
@@ -718,7 +718,7 @@ const SubscriptionPage = ({ navigation }) => {
               style={styles.modalCloseButton}
               onPress={() => setShowManageModal(false)}
             >
-              <Icon name="x" size={24} color="#6B7280" />
+              <Icon name="x" size={24} color="#A1A1AA" />
             </TouchableOpacity>
           </View>
 
@@ -739,7 +739,7 @@ const SubscriptionPage = ({ navigation }) => {
                   Switch to {billingCycle === 'monthly' ? 'yearly' : 'monthly'} billing
                 </Text>
               </View>
-              <Icon name="chevron-right" size={20} color="#9CA3AF" />
+              <Icon name="chevron-right" size={20} color="#6B7280" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -756,7 +756,7 @@ const SubscriptionPage = ({ navigation }) => {
                 <Text style={styles.manageOptionTitle}>Update Payment Method</Text>
                 <Text style={styles.manageOptionSubtitle}>Change your default card</Text>
               </View>
-              <Icon name="chevron-right" size={20} color="#9CA3AF" />
+              <Icon name="chevron-right" size={20} color="#6B7280" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -770,14 +770,14 @@ const SubscriptionPage = ({ navigation }) => {
                 <Text style={styles.manageOptionTitle}>Renew Now</Text>
                 <Text style={styles.manageOptionSubtitle}>Extend your subscription early</Text>
               </View>
-              <Icon name="chevron-right" size={20} color="#9CA3AF" />
+              <Icon name="chevron-right" size={20} color="#6B7280" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.manageOptionItem, styles.manageOptionDanger]}
               onPress={() => handleManageAction('cancel')}
             >
-              <View style={[styles.manageOptionIcon, { backgroundColor: '#FEE2E2' }]}>
+              <View style={[styles.manageOptionIcon, { backgroundColor: 'rgba(255,107,107,0.12)' }]}>
                 <Icon name="x-circle" size={20} color="#EF4444" />
               </View>
               <View style={styles.manageOptionInfo}>
@@ -788,7 +788,7 @@ const SubscriptionPage = ({ navigation }) => {
                   Access continues until billing period ends
                 </Text>
               </View>
-              <Icon name="chevron-right" size={20} color="#9CA3AF" />
+              <Icon name="chevron-right" size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
         </View>
@@ -808,7 +808,7 @@ const SubscriptionPage = ({ navigation }) => {
         <View style={styles.confirmModal}>
           <View style={[
             styles.confirmIconContainer,
-            confirmAction === 'cancel' && { backgroundColor: '#FEE2E2' },
+            confirmAction === 'cancel' && { backgroundColor: 'rgba(255,107,107,0.12)' },
           ]}>
             <Icon
               name={confirmAction === 'cancel' ? 'alert-triangle' : 'check-circle'}
@@ -870,7 +870,7 @@ const SubscriptionPage = ({ navigation }) => {
               style={styles.modalCloseButton}
               onPress={() => setShowCompareModal(false)}
             >
-              <Icon name="x" size={24} color="#6B7280" />
+              <Icon name="x" size={24} color="#A1A1AA" />
             </TouchableOpacity>
           </View>
 
@@ -893,7 +893,7 @@ const SubscriptionPage = ({ navigation }) => {
             {subscriptionPlans[0].features.map((feature, index) => (
               <View key={index} style={styles.compareRow}>
                 <View style={styles.compareFeatureCell}>
-                  <Icon name={feature.icon} size={16} color="#6B7280" />
+                  <Icon name={feature.icon} size={16} color="#A1A1AA" />
                   <Text style={styles.compareFeatureName}>{feature.name}</Text>
                 </View>
                 {subscriptionPlans.map((plan) => (
@@ -901,7 +901,7 @@ const SubscriptionPage = ({ navigation }) => {
                     <Icon
                       name={plan.features[index].included ? 'check' : 'x'}
                       size={18}
-                      color={plan.features[index].included ? '#10B981' : '#D1D5DB'}
+                      color={plan.features[index].included ? '#10B981' : 'rgba(255,255,255,0.10)'}
                     />
                   </View>
                 ))}
@@ -933,7 +933,7 @@ const SubscriptionPage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={palette.bg} />
+      <StatusBar barStyle="light-content" backgroundColor={palette.bg} />
 
       {renderHeader()}
 
@@ -980,9 +980,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.95)',
+    borderColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1026,7 +1026,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   trialIconContainer: {
     width: 48,
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   trialButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1059,19 +1059,19 @@ const styles = StyleSheet.create({
   trialButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
 
   // Billing Toggle
   billingToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     marginHorizontal: 16,
     marginTop: 16,
     padding: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   billingOption: {
     flex: 1,
@@ -1082,18 +1082,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   billingOptionActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   billingOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   billingOptionTextActive: {
     color: '#FFFFFF',
   },
   saveBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(242,181,60,0.12)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1115,21 +1115,21 @@ const styles = StyleSheet.create({
   // teal-tinted lifted shadow. The popular plan gets a stronger,
   // teal-coloured shadow to draw the eye without needing extra chrome.
   planCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 14,
     marginBottom: 14,
     position: 'relative',
-    shadowColor: '#0F2828',
+    shadowColor: '#E5232E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 2,
   },
   popularPlanCard: {
-    shadowColor: '#0D7377',
+    shadowColor: '#FF2E40',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 18,
@@ -1265,7 +1265,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.3,
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   // Current Status — flat block on mint bg, no white card.
@@ -1284,7 +1284,7 @@ const styles = StyleSheet.create({
   currentStatusTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   currentStatusDetails: {
-    backgroundColor: 'rgba(255,255,255,0.65)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 18,
     padding: 16,
   },
@@ -1307,12 +1307,12 @@ const styles = StyleSheet.create({
   },
   statusDetailLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   statusDetailValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   currentStatusActions: {
     flexDirection: 'row',
@@ -1326,15 +1326,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
   },
   statusActionButtonOutline: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'rgba(255,107,107,0.12)',
   },
   statusActionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
     marginLeft: 6,
   },
 
@@ -1353,7 +1353,7 @@ const styles = StyleSheet.create({
   promoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginLeft: 8,
   },
   promoInputContainer: {
@@ -1363,28 +1363,28 @@ const styles = StyleSheet.create({
   promoInput: {
     flex: 1,
     height: 48,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 10,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#1F2937',
+    color: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   promoApplyButton: {
     marginLeft: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 10,
   },
   promoApplyButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   promoApplyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
   promoSuccessContainer: {
     flexDirection: 'row',
@@ -1399,7 +1399,7 @@ const styles = StyleSheet.create({
   },
   promoHint: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
     marginTop: 8,
   },
 
@@ -1428,7 +1428,7 @@ const styles = StyleSheet.create({
   addPaymentText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
     marginLeft: 4,
   },
   paymentMethodCard: {
@@ -1442,7 +1442,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 32,
     borderRadius: 6,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1453,15 +1453,15 @@ const styles = StyleSheet.create({
   paymentMethodType: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   paymentMethodExpiry: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   defaultBadge: {
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1470,7 +1470,7 @@ const styles = StyleSheet.create({
   defaultBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   paymentMethodMenu: {
     padding: 4,
@@ -1482,7 +1482,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   faqItem: {
-    backgroundColor: 'rgba(255,255,255,0.65)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 18,
     padding: 16,
     marginTop: 10,
@@ -1496,17 +1496,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
     paddingRight: 12,
   },
   faqAnswer: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     lineHeight: 22,
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
   },
 
   // Modal Styles
@@ -1524,20 +1524,20 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   modalCloseButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   // Payment Modal
   paymentModal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -1546,7 +1546,7 @@ const styles = StyleSheet.create({
   selectedPlanSummary: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     padding: 16,
     borderRadius: 12,
   },
@@ -1563,17 +1563,17 @@ const styles = StyleSheet.create({
   summaryPlanName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   summaryPlanCycle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   pricingSummary: {
     marginTop: 20,
     padding: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
   },
   pricingRow: {
@@ -1583,27 +1583,27 @@ const styles = StyleSheet.create({
   },
   pricingLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   pricingValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   pricingDivider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     marginVertical: 12,
   },
   pricingTotalLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#0B0F0C',
   },
   pricingTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   paymentMethodSelect: {
     marginTop: 20,
@@ -1611,31 +1611,31 @@ const styles = StyleSheet.create({
   paymentMethodSelectLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: '#A1A1AA',
     marginBottom: 12,
   },
   selectedPaymentMethod: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   selectedPaymentText: {
     flex: 1,
     fontSize: 14,
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginLeft: 12,
   },
   changePaymentText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   confirmSubscribeButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -1648,7 +1648,7 @@ const styles = StyleSheet.create({
   },
   subscribeDisclaimer: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 18,
@@ -1659,7 +1659,7 @@ const styles = StyleSheet.create({
 
   // Manage Modal
   manageModal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -1672,7 +1672,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   manageOptionDanger: {
     borderBottomWidth: 0,
@@ -1681,7 +1681,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1692,17 +1692,17 @@ const styles = StyleSheet.create({
   manageOptionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   manageOptionSubtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
 
   // Confirm Modal
   confirmModal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 24,
     padding: 24,
     marginHorizontal: 24,
@@ -1714,7 +1714,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'rgba(124,224,107,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -1722,12 +1722,12 @@ const styles = StyleSheet.create({
   confirmTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   confirmMessage: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     lineHeight: 22,
     marginTop: 12,
@@ -1741,30 +1741,30 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   confirmCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   confirmActionButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     alignItems: 'center',
   },
   confirmActionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   // Compare Modal
   compareModal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -1777,17 +1777,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingBottom: 16,
     borderBottomWidth: 2,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   compareRow: {
     flexDirection: 'row',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   comparePriceRow: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     marginTop: 8,
     borderRadius: 8,
     borderBottomWidth: 0,
@@ -1804,7 +1804,7 @@ const styles = StyleSheet.create({
   compareFeatureHeader: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#374151',
+    color: '#A1A1AA',
   },
   comparePlanHeader: {
     fontSize: 14,
@@ -1812,13 +1812,13 @@ const styles = StyleSheet.create({
   },
   compareFeatureName: {
     fontSize: 13,
-    color: '#374151',
+    color: '#A1A1AA',
     marginLeft: 8,
   },
   comparePriceLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: '#A1A1AA',
   },
   comparePriceValue: {
     fontSize: 14,

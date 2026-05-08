@@ -248,11 +248,11 @@ const BookingManagementPage = ({ navigation }) => {
       case 'active':    return '#10B981';
       case 'confirmed': return '#3B82F6';
       case 'pending':   return '#F59E0B';
-      case 'completed': return '#6B7280';
+      case 'completed': return '#A1A1AA';
       case 'cancelled': return '#EF4444';
       case 'rejected':  return '#DC2626';
-      case 'no_show':   return '#9CA3AF';
-      default:          return '#6B7280';
+      case 'no_show':   return '#6B7280';
+      default:          return '#A1A1AA';
     }
   };
 
@@ -282,7 +282,7 @@ const BookingManagementPage = ({ navigation }) => {
           <Icon
             name="star"
             size={size}
-            color={star <= rating ? '#F59E0B' : '#E5E7EB'}
+            color={star <= rating ? '#F59E0B' : 'rgba(255,255,255,0.08)'}
             style={{ marginHorizontal: 2 }}
           />
         </TouchableOpacity>
@@ -326,17 +326,17 @@ const BookingManagementPage = ({ navigation }) => {
         <View style={styles.cardDetails}>
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
-              <Icon name="map-pin" size={14} color="#6B7280" />
+              <Icon name="map-pin" size={14} color="#A1A1AA" />
               <Text style={styles.detailText} numberOfLines={1}>{address}</Text>
             </View>
           </View>
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
-              <Icon name="calendar" size={14} color="#6B7280" />
+              <Icon name="calendar" size={14} color="#A1A1AA" />
               <Text style={styles.detailText}>{dateLabel}</Text>
             </View>
             <View style={styles.detailItem}>
-              <Icon name="clock" size={14} color="#6B7280" />
+              <Icon name="clock" size={14} color="#A1A1AA" />
               <Text style={styles.detailText}>{startLabel} – {endLabel}</Text>
             </View>
           </View>
@@ -426,7 +426,7 @@ const BookingManagementPage = ({ navigation }) => {
         <Icon
           name={selectedTab === 'active' ? 'play-circle' : selectedTab === 'upcoming' ? 'clock' : 'check-circle'}
           size={48}
-          color="#9CA3AF"
+          color="#6B7280"
         />
       </View>
       <Text style={styles.emptyTitle}>
@@ -462,29 +462,29 @@ const BookingManagementPage = ({ navigation }) => {
               style={styles.headerButton}
               onPress={() => setShowSearch(!showSearch)}
             >
-              <Icon name="search" size={20} color="#1A1A2E" />
+              <Icon name="search" size={20} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => setShowFilterModal(true)}
             >
-              <Icon name="sliders" size={20} color="#1A1A2E" />
+              <Icon name="sliders" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
         {showSearch && (
           <View style={styles.searchContainer}>
-            <Icon name="search" size={18} color="#9CA3AF" />
+            <Icon name="search" size={18} color="#6B7280" />
             <TextInput
               style={styles.searchInput}
               placeholder="Search bookings..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#6B7280"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Icon name="x" size={18} color="#9CA3AF" />
+                <Icon name="x" size={18} color="#6B7280" />
               </TouchableOpacity>
             )}
           </View>
@@ -504,7 +504,7 @@ const BookingManagementPage = ({ navigation }) => {
               <Icon
                 name={tab.icon}
                 size={16}
-                color={selectedTab === tab.id ? '#0D7377' : '#9CA3AF'}
+                color={selectedTab === tab.id ? '#FF2E40' : '#6B7280'}
               />
               <Text style={[styles.tabText, selectedTab === tab.id && styles.tabTextActive]}>
                 {tab.label}
@@ -569,7 +569,7 @@ const BookingManagementPage = ({ navigation }) => {
             <View style={styles.detailsModalHeader}>
               <Text style={styles.detailsModalTitle}>Booking Details</Text>
               <TouchableOpacity onPress={() => setShowDetailsModal(false)}>
-                <Icon name="x" size={24} color="#1A1A2E" />
+                <Icon name="x" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -750,7 +750,7 @@ const BookingManagementPage = ({ navigation }) => {
             <TextInput
               style={styles.cancelReasonInput}
               placeholder="Reason (optional)"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#6B7280"
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline
@@ -861,7 +861,7 @@ const BookingManagementPage = ({ navigation }) => {
             <TextInput
               style={styles.reviewInput}
               placeholder="Share your experience (optional)"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#6B7280"
               multiline
               numberOfLines={4}
               value={reviewText}
@@ -899,7 +899,7 @@ const BookingManagementPage = ({ navigation }) => {
             <View style={styles.filterHeader}>
               <Text style={styles.filterTitle}>Filter Bookings</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Icon name="x" size={24} color="#1A1A2E" />
+                <Icon name="x" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
             <Text style={styles.filterSectionTitle}>Status</Text>
@@ -966,16 +966,16 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.95)',
+    borderColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -985,15 +985,15 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     padding: 0,
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   tab: {
     flex: 1,
@@ -1007,29 +1007,29 @@ const styles = StyleSheet.create({
   tabActive: {},
   tabText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#6B7280',
     fontWeight: '500',
   },
   tabTextActive: {
-    color: '#0D7377',
+    color: '#FF2E40',
     fontWeight: '600',
   },
   tabBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   tabBadgeActive: {
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
   },
   tabBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   tabBadgeTextActive: {
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   tabIndicator: {
     position: 'absolute',
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 3,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     borderTopLeftRadius: 3,
     borderTopRightRadius: 3,
   },
@@ -1049,7 +1049,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   listContent: {
     padding: 16,
@@ -1084,11 +1084,11 @@ const styles = StyleSheet.create({
   parkingName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   bookingId: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
     marginTop: 2,
   },
   statusBadge: {
@@ -1126,7 +1126,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     flex: 1,
   },
   priceContainer: {
@@ -1136,12 +1136,12 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   priceValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   cardActions: {
     flexDirection: 'row',
@@ -1159,23 +1159,23 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 13,
-    color: '#0D7377',
+    color: '#FF2E40',
     fontWeight: '600',
   },
   primaryButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
   cancelButton: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'rgba(255,107,107,0.12)',
   },
   cancelButtonText: {
     color: '#EF4444',
   },
   reviewButton: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(242,181,60,0.12)',
   },
   reviewButtonText: {
     color: '#D97706',
@@ -1211,12 +1211,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -1224,14 +1224,14 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
     gap: 8,
   },
   emptyButtonText: {
-    color: '#FFFFFF',
+    color: '#0B0F0C',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1242,10 +1242,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0D7377',
+    shadowColor: '#FF2E40',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1261,7 +1261,7 @@ const styles = StyleSheet.create({
   modalHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 16,
@@ -1269,7 +1269,7 @@ const styles = StyleSheet.create({
 
   // Details Modal
   detailsModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
@@ -1285,7 +1285,7 @@ const styles = StyleSheet.create({
   detailsModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   statusBanner: {
     flexDirection: 'row',
@@ -1306,12 +1306,12 @@ const styles = StyleSheet.create({
   detailsSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 10,
   },
   parkingInfoCard: {
     flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 14,
   },
@@ -1319,7 +1319,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 12,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1330,11 +1330,11 @@ const styles = StyleSheet.create({
   parkingInfoName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   parkingInfoAddress: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   parkingInfoBadges: {
@@ -1344,18 +1344,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   infoBadge: {
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   infoBadgeText: {
     fontSize: 11,
-    color: '#0D7377',
+    color: '#FF2E40',
     fontWeight: '500',
   },
   timelineCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 16,
   },
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   timelineDotEnd: {
     backgroundColor: '#10B981',
@@ -1377,23 +1377,23 @@ const styles = StyleSheet.create({
   },
   timelineLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   timelineValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginTop: 2,
   },
   timelineLine: {
     width: 2,
     height: 24,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     marginLeft: 5,
     marginVertical: 4,
   },
   paymentCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 14,
   },
@@ -1404,27 +1404,27 @@ const styles = StyleSheet.create({
   },
   paymentLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   paymentValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   paymentDivider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     marginVertical: 10,
   },
   paymentTotalLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#0B0F0C',
   },
   paymentTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   cancellationCard: {
     flexDirection: 'row',
@@ -1443,7 +1443,7 @@ const styles = StyleSheet.create({
   ownerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 14,
   },
@@ -1451,7 +1451,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1462,18 +1462,18 @@ const styles = StyleSheet.create({
   ownerName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   ownerPhone: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   callButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -1482,7 +1482,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1498,19 +1498,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     gap: 8,
   },
   detailsActionPrimary: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   detailsActionCancel: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'rgba(255,107,107,0.12)',
   },
   detailsActionText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
 
   // Confirm Modal
@@ -1522,7 +1522,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   confirmModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -1532,7 +1532,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'rgba(255,107,107,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -1540,25 +1540,25 @@ const styles = StyleSheet.create({
   confirmTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   confirmMessage: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
   },
   cancelReasonInput: {
     width: '100%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
     minHeight: 60,
     textAlignVertical: 'top',
     marginBottom: 20,
@@ -1572,13 +1572,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   confirmCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   confirmDeleteButton: {
     flex: 1,
@@ -1596,7 +1596,7 @@ const styles = StyleSheet.create({
 
   // Extend Modal
   extendModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
@@ -1606,12 +1606,12 @@ const styles = StyleSheet.create({
   extendModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   extendModalSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 24,
@@ -1627,7 +1627,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1637,14 +1637,14 @@ const styles = StyleSheet.create({
   hourValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   hourUnit: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   extendPriceCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -1656,12 +1656,12 @@ const styles = StyleSheet.create({
   },
   extendPriceLabel: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   extendPriceValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   extendActions: {
     flexDirection: 'row',
@@ -1671,19 +1671,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   extendCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   extendConfirmButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1695,7 +1695,7 @@ const styles = StyleSheet.create({
 
   // Review Modal
   reviewModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
@@ -1705,12 +1705,12 @@ const styles = StyleSheet.create({
   reviewModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   reviewParkingName: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 20,
@@ -1720,11 +1720,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   reviewInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     minHeight: 100,
     textAlignVertical: 'top',
     marginBottom: 20,
@@ -1737,23 +1737,23 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   reviewCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   reviewSubmitButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     alignItems: 'center',
   },
   reviewSubmitDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: '#6B7280',
   },
   reviewSubmitText: {
     fontSize: 15,
@@ -1763,7 +1763,7 @@ const styles = StyleSheet.create({
 
   // Filter Modal
   filterModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
@@ -1779,12 +1779,12 @@ const styles = StyleSheet.create({
   filterTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   filterSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 12,
   },
   filterOptions: {
@@ -1797,21 +1797,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   filterOptionActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   filterOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   filterOptionTextActive: {
     color: '#FFFFFF',
   },
   filterApplyButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -1829,7 +1829,7 @@ const styles = StyleSheet.create({
   filterResetText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
 });
 

@@ -334,7 +334,7 @@ const FaqItem = ({ question, answer, isExpanded, onToggle }) => {
       <View style={styles.faqHeader}>
         <Text style={styles.faqQuestion}>{question}</Text>
         <Animated.View style={{ transform: [{ rotate }] }}>
-          <Icon name="chevron-down" size={20} color="#6B7280" />
+          <Icon name="chevron-down" size={20} color="#A1A1AA" />
         </Animated.View>
       </View>
       {isExpanded && (
@@ -380,7 +380,7 @@ const InfoBanner = ({ onDismiss }) => {
         </Text>
       </View>
       <TouchableOpacity onPress={onDismiss} style={styles.infoBannerClose}>
-        <Icon name="x" size={16} color="#6B7280" />
+        <Icon name="x" size={16} color="#A1A1AA" />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -448,7 +448,7 @@ const AboutPage = ({ navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Icon name="arrow-left" size={24} color="#1A1A2E" />
+          <Icon name="arrow-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>About</Text>
         <View style={styles.headerRight} />
@@ -586,7 +586,7 @@ const AboutPage = ({ navigation }) => {
                 <Text style={styles.contactTitle}>Contact Support</Text>
                 <Text style={styles.contactSubtitle}>support@parkease.com</Text>
               </View>
-              <Icon name="chevron-right" size={20} color="#9CA3AF" />
+              <Icon name="chevron-right" size={20} color="#6B7280" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -601,7 +601,7 @@ const AboutPage = ({ navigation }) => {
                 <Text style={styles.contactTitle}>Help Center</Text>
                 <Text style={styles.contactSubtitle}>FAQs & guides</Text>
               </View>
-              <Icon name="chevron-right" size={20} color="#9CA3AF" />
+              <Icon name="chevron-right" size={20} color="#6B7280" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -616,7 +616,7 @@ const AboutPage = ({ navigation }) => {
                 <Text style={styles.contactTitle}>Privacy Policy</Text>
                 <Text style={styles.contactSubtitle}>How we protect your data</Text>
               </View>
-              <Icon name="chevron-right" size={20} color="#9CA3AF" />
+              <Icon name="chevron-right" size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
         </View>
@@ -657,9 +657,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.95)',
+    borderColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     marginHorizontal: 16,
     marginTop: 16,
     padding: 12,
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
   },
   infoBannerText: {
     fontSize: 13,
-    color: '#0D7377',
+    color: '#FF2E40',
     fontWeight: '500',
     flex: 1,
   },
@@ -717,11 +717,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#0D7377',
+    shadowColor: '#FF2E40',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -730,18 +730,18 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   tagline: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
   },
 
   // Section
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     marginHorizontal: 16,
     marginTop: 16,
     padding: 20,
@@ -755,14 +755,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 16,
   },
 
   // Description
   descriptionText: {
     fontSize: 14,
-    color: '#4B5563',
+    color: '#A1A1AA',
     lineHeight: 22,
   },
   readMoreButton: {
@@ -774,13 +774,13 @@ const styles = StyleSheet.create({
   readMoreText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
 
   // Segmented Control
   segmentedContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     padding: 4,
     marginBottom: 20,
@@ -792,7 +792,7 @@ const styles = StyleSheet.create({
     left: 4,
     width: '48%',
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -809,10 +809,10 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   segmentTextActive: {
-    color: '#0D7377',
+    color: '#FF2E40',
   },
 
   // Benefits
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
   benefitCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     padding: 14,
     borderRadius: 12,
   },
@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -841,12 +841,12 @@ const styles = StyleSheet.create({
   benefitTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   benefitDescription: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     lineHeight: 18,
   },
 
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     marginVertical: 4,
   },
   timelineContent: {
@@ -888,12 +888,12 @@ const styles = StyleSheet.create({
   timelineTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   timelineDescription: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     lineHeight: 18,
   },
 
@@ -905,7 +905,7 @@ const styles = StyleSheet.create({
   },
   trustCard: {
     width: '47%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
@@ -922,20 +922,20 @@ const styles = StyleSheet.create({
   trustTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 4,
   },
   trustDescription: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     lineHeight: 16,
   },
 
   // FAQ
   faqItem: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     marginBottom: 10,
     padding: 16,
@@ -949,18 +949,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginRight: 12,
   },
   faqAnswerContainer: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   faqAnswer: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     lineHeight: 20,
   },
 
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
   contactOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     padding: 14,
     borderRadius: 12,
   },
@@ -989,11 +989,11 @@ const styles = StyleSheet.create({
   contactTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   contactSubtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
 
@@ -1007,7 +1007,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -1015,22 +1015,22 @@ const styles = StyleSheet.create({
   metaAppName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   metaVersion: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 4,
   },
   metaCopyright: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
     marginBottom: 8,
   },
   metaTagline: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
     fontStyle: 'italic',
   },
 });

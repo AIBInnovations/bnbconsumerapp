@@ -123,7 +123,7 @@ const FAQItem = ({ item, isExpanded, onToggle }) => {
       <View style={styles.faqHeader}>
         <Text style={styles.faqQuestion}>{item.question}</Text>
         <Animated.View style={{ transform: [{ rotate }] }}>
-          <Icon name="chevron-down" size={20} color="#6B7280" />
+          <Icon name="chevron-down" size={20} color="#A1A1AA" />
         </Animated.View>
       </View>
       {isExpanded && (
@@ -153,7 +153,7 @@ const StatusBadge = ({ status }) => {
       case 'closed':
         return { color: '#10B981', bg: '#ECFDF5', label: 'Closed' };
       default:
-        return { color: '#6B7280', bg: '#F3F4F6', label: 'Unknown' };
+        return { color: '#A1A1AA', bg: 'rgba(255,255,255,0.05)', label: 'Unknown' };
     }
   };
 
@@ -180,7 +180,7 @@ const TicketItem = ({ ticket, onPress }) => {
         {ticket.description}
       </Text>
       <View style={styles.ticketFooter}>
-        <Icon name="calendar" size={14} color="#9CA3AF" />
+        <Icon name="calendar" size={14} color="#6B7280" />
         <Text style={styles.ticketDate}>{ticket.date}</Text>
       </View>
     </TouchableOpacity>
@@ -200,7 +200,7 @@ const ContactOption = ({ icon, iconType, title, subtitle, onPress, color }) => {
         <Text style={styles.contactTitle}>{title}</Text>
         <Text style={styles.contactSubtitle}>{subtitle}</Text>
       </View>
-      <Icon name="chevron-right" size={20} color="#9CA3AF" />
+      <Icon name="chevron-right" size={20} color="#6B7280" />
     </TouchableOpacity>
   );
 };
@@ -297,7 +297,7 @@ const HelpSupportPage = ({ navigation }) => {
             <Icon
               name={cat.icon}
               size={16}
-              color={ticketCategory === cat.id ? '#FFFFFF' : '#6B7280'}
+              color={ticketCategory === cat.id ? '#FFFFFF' : '#A1A1AA'}
             />
             <Text
               style={[
@@ -315,7 +315,7 @@ const HelpSupportPage = ({ navigation }) => {
       <TextInput
         style={styles.textInput}
         placeholder="Brief description of your issue"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor="#6B7280"
         value={ticketSubject}
         onChangeText={setTicketSubject}
         maxLength={100}
@@ -325,7 +325,7 @@ const HelpSupportPage = ({ navigation }) => {
       <TextInput
         style={[styles.textInput, styles.textArea]}
         placeholder="Please provide details about your issue..."
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor="#6B7280"
         value={ticketDescription}
         onChangeText={setTicketDescription}
         multiline
@@ -360,7 +360,7 @@ const HelpSupportPage = ({ navigation }) => {
     <View style={styles.ticketsContainer}>
       {tickets.length === 0 ? (
         <View style={styles.emptyState}>
-          <Icon name="inbox" size={48} color="#D1D5DB" />
+          <Icon name="inbox" size={48} color="rgba(255,255,255,0.10)" />
           <Text style={styles.emptyStateTitle}>No tickets yet</Text>
           <Text style={styles.emptyStateText}>
             You haven't submitted any support tickets.
@@ -384,17 +384,17 @@ const HelpSupportPage = ({ navigation }) => {
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Icon name="search" size={20} color="#9CA3AF" />
+          <Icon name="search" size={20} color="#6B7280" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search FAQs..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#6B7280"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Icon name="x" size={18} color="#9CA3AF" />
+              <Icon name="x" size={18} color="#6B7280" />
             </TouchableOpacity>
           )}
         </View>
@@ -409,7 +409,7 @@ const HelpSupportPage = ({ navigation }) => {
 
         {filteredFAQs.length === 0 ? (
           <View style={styles.emptyState}>
-            <Icon name="search" size={40} color="#D1D5DB" />
+            <Icon name="search" size={40} color="rgba(255,255,255,0.10)" />
             <Text style={styles.emptyStateTitle}>No results found</Text>
             <Text style={styles.emptyStateText}>
               Try searching with different keywords
@@ -550,7 +550,7 @@ const HelpSupportPage = ({ navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Icon name="arrow-left" size={24} color="#1A1A2E" />
+          <Icon name="arrow-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
         <View style={styles.headerRight} />
@@ -607,9 +607,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.95)',
+    borderColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -632,12 +632,12 @@ const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 46,
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginLeft: 10,
   },
   section: {
@@ -661,10 +661,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   faqItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     marginBottom: 10,
     padding: 16,
@@ -683,22 +683,22 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginRight: 12,
   },
   faqAnswerContainer: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
   },
   faqAnswer: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     lineHeight: 22,
   },
   ticketCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
   },
   ticketCardText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     borderRadius: 12,
     paddingVertical: 14,
     gap: 8,
@@ -725,23 +725,23 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
   secondaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     paddingVertical: 14,
     borderWidth: 1.5,
-    borderColor: '#0D7377',
+    borderColor: '#FF2E40',
     gap: 8,
   },
   secondaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   ticketBadge: {
     backgroundColor: '#EF4444',
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   contactList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   contactIconContainer: {
     width: 44,
@@ -786,11 +786,11 @@ const styles = StyleSheet.create({
   contactTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   contactSubtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   footer: {
@@ -805,12 +805,12 @@ const styles = StyleSheet.create({
   },
   footerLinkText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   footerDivider: {
     width: 1,
     height: 12,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   // Form Styles
   formContainer: {
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#0B0F0C',
     marginBottom: 8,
     marginTop: 16,
   },
@@ -834,29 +834,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     gap: 6,
   },
   categoryChipActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   categoryChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   categoryChipTextActive: {
     color: '#FFFFFF',
   },
   textInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   textArea: {
     height: 140,
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
     textAlign: 'right',
     marginTop: 4,
   },
@@ -872,26 +872,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     borderRadius: 12,
     paddingVertical: 16,
     marginTop: 24,
     gap: 8,
   },
   submitButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: '#6B7280',
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
   // Tickets Styles
   ticketsContainer: {
     padding: 16,
   },
   ticketItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
   ticketId: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -932,12 +932,12 @@ const styles = StyleSheet.create({
   ticketSubject: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   ticketDescription: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     lineHeight: 18,
   },
   ticketFooter: {
@@ -946,12 +946,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
     gap: 6,
   },
   ticketDate: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
   },
   // Empty State Styles
   emptyState: {
@@ -962,12 +962,12 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 12,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#6B7280',
     marginTop: 4,
     textAlign: 'center',
   },
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   successModal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
@@ -997,12 +997,12 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   successText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
   },
 });

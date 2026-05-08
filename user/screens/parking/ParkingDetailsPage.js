@@ -475,7 +475,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={22} color="#1A1A2E" />
+          <Icon name="arrow-left" size={22} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Book Parking Space</Text>
         <View style={styles.headerActions}>
@@ -490,7 +490,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
             />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
-            <Icon name="share-2" size={22} color="#1A1A2E" />
+            <Icon name="share-2" size={22} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -573,7 +573,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
           </View>
 
           <TouchableOpacity style={styles.addressRow} onPress={handleDirections}>
-            <Icon name="map-pin" size={16} color="#6B7280" />
+            <Icon name="map-pin" size={16} color="#A1A1AA" />
             <Text style={styles.addressText}>{parking.address}</Text>
             <Icon name="navigation" size={14} color="#1A73E8" />
           </TouchableOpacity>
@@ -602,19 +602,19 @@ const ParkingDetailsPage = ({ navigation, route }) => {
             <Text style={styles.dimensionsTitle}>Space Dimensions</Text>
             <View style={styles.dimensionsRow}>
               <View style={styles.dimensionItem}>
-                <MaterialIcon name="arrow-left-right" size={18} color="#6B7280" />
+                <MaterialIcon name="arrow-left-right" size={18} color="#A1A1AA" />
                 <Text style={styles.dimensionLabel}>Width</Text>
                 <Text style={styles.dimensionValue}>{parking.dimensions.width}</Text>
               </View>
               <View style={styles.dimensionDivider} />
               <View style={styles.dimensionItem}>
-                <MaterialIcon name="arrow-up-down" size={18} color="#6B7280" />
+                <MaterialIcon name="arrow-up-down" size={18} color="#A1A1AA" />
                 <Text style={styles.dimensionLabel}>Length</Text>
                 <Text style={styles.dimensionValue}>{parking.dimensions.length}</Text>
               </View>
               <View style={styles.dimensionDivider} />
               <View style={styles.dimensionItem}>
-                <MaterialIcon name="arrow-collapse-up" size={18} color="#6B7280" />
+                <MaterialIcon name="arrow-collapse-up" size={18} color="#A1A1AA" />
                 <Text style={styles.dimensionLabel}>Height</Text>
                 <Text style={styles.dimensionValue}>{parking.dimensions.height}</Text>
               </View>
@@ -662,20 +662,20 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                   activeOpacity={isFullyBooked ? 1 : 0.8}
                 >
                   <View style={styles.spaceCardLeft}>
-                    <View style={[styles.spaceIconCircle, isSelected && { backgroundColor: '#0D7377' }]}>
+                    <View style={[styles.spaceIconCircle, isSelected && { backgroundColor: '#FF2E40' }]}>
                       <MaterialIcon
                         name={SPACE_TYPE_ICONS[space.spaceType] || 'parking'}
                         size={22}
-                        color={isSelected ? '#FFFFFF' : '#0D7377'}
+                        color={isSelected ? '#FFFFFF' : '#FF2E40'}
                       />
                     </View>
                   </View>
                   <View style={styles.spaceCardBody}>
                     <View style={styles.spaceCardHeader}>
-                      <Text style={[styles.spaceCardType, isFullyBooked && { color: '#9CA3AF' }]}>
+                      <Text style={[styles.spaceCardType, isFullyBooked && { color: '#6B7280' }]}>
                         {SPACE_TYPE_LABELS[space.spaceType] || space.spaceType}
                       </Text>
-                      <Text style={[styles.spaceCardPrice, isFullyBooked && { color: '#9CA3AF' }]}>
+                      <Text style={[styles.spaceCardPrice, isFullyBooked && { color: '#6B7280' }]}>
                         ₹{space.pricePerHour}/hr
                       </Text>
                     </View>
@@ -696,7 +696,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                         </View>
                       )}
                       {space.bookingMode === 'request' && (
-                        <View style={[styles.spaceBadge, { backgroundColor: '#FEF3C7' }]}>
+                        <View style={[styles.spaceBadge, { backgroundColor: 'rgba(242,181,60,0.12)' }]}>
                           <Text style={[styles.spaceBadgeText, { color: '#92400E' }]}>On Request</Text>
                         </View>
                       )}
@@ -775,7 +775,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                 <Icon
                   name={option.icon}
                   size={16}
-                  color={selectedDuration === option.id ? '#FFFFFF' : '#6B7280'}
+                  color={selectedDuration === option.id ? '#FFFFFF' : '#A1A1AA'}
                 />
                 <Text style={[
                   styles.durationTypeText,
@@ -799,12 +799,12 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                   <View style={styles.timePickerValue}>
                     <Icon name="clock" size={18} color="#1A73E8" />
                     <Text style={styles.timePickerText}>{getDisplayTime(selectedStartTime)}</Text>
-                    <Icon name="chevron-down" size={18} color="#6B7280" />
+                    <Icon name="chevron-down" size={18} color="#A1A1AA" />
                   </View>
                 </TouchableOpacity>
 
                 <View style={styles.timeArrow}>
-                  <Icon name="arrow-right" size={20} color="#9CA3AF" />
+                  <Icon name="arrow-right" size={20} color="#6B7280" />
                 </View>
 
                 <TouchableOpacity
@@ -815,7 +815,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                   <View style={styles.timePickerValue}>
                     <Icon name="clock" size={18} color="#1A73E8" />
                     <Text style={styles.timePickerText}>{getDisplayTime(selectedEndTime)}</Text>
-                    <Icon name="chevron-down" size={18} color="#6B7280" />
+                    <Icon name="chevron-down" size={18} color="#A1A1AA" />
                   </View>
                 </TouchableOpacity>
               </View>
@@ -889,7 +889,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                       <Icon name="check-circle" size={16} color="#1A73E8" />
                     </View>
                   )}
-                  <Icon name={opt.icon} size={30} color={active ? '#0D7377' : '#6B7280'} />
+                  <Icon name={opt.icon} size={30} color={active ? '#FF2E40' : '#A1A1AA'} />
                   <Text style={[styles.paymentOptionLabel, active && styles.paymentOptionLabelActive]}>
                     {opt.label}
                   </Text>
@@ -972,7 +972,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
         <View style={styles.bottomPriceContainer}>
           <Text style={styles.bottomPriceLabel}>Total</Text>
           {isPropertyMode && !selectedSpace ? (
-            <Text style={[styles.bottomPriceValue, { fontSize: 13, color: '#6B7280' }]}>
+            <Text style={[styles.bottomPriceValue, { fontSize: 13, color: '#A1A1AA' }]}>
               Select a spot
             </Text>
           ) : (
@@ -1059,7 +1059,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
             <View style={styles.onlineConfirmHeader}>
               <Text style={styles.onlineConfirmTitle}>Confirm Booking</Text>
               <TouchableOpacity onPress={() => setShowOnlineConfirmModal(false)}>
-                <Icon name="x" size={24} color="#1A1A2E" />
+                <Icon name="x" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -1087,7 +1087,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
             </View>
 
             <View style={styles.onlineConfirmNote}>
-              <Icon name="info" size={13} color="#6B7280" />
+              <Icon name="info" size={13} color="#A1A1AA" />
               <Text style={styles.onlineConfirmNoteText}>
                 Online payment gateway coming soon. Your booking will be confirmed directly.
               </Text>
@@ -1122,7 +1122,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
             <View style={styles.addVehicleHeader}>
               <Text style={styles.addVehicleTitle}>Add a Vehicle</Text>
               <TouchableOpacity onPress={() => setShowAddVehicleModal(false)}>
-                <Icon name="x" size={24} color="#1A1A2E" />
+                <Icon name="x" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
             <Text style={styles.addVehicleSubtitle}>
@@ -1133,7 +1133,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
             <TextInput
               style={styles.addVehicleInput}
               placeholder="e.g. MH12AB1234"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#6B7280"
               value={addVehicleReg}
               onChangeText={(v) => setAddVehicleReg(v.toUpperCase())}
               autoCapitalize="characters"
@@ -1199,7 +1199,7 @@ const ParkingDetailsPage = ({ navigation, route }) => {
                 Select {timeModalType === 'start' ? 'Start' : 'End'} Time
               </Text>
               <TouchableOpacity onPress={() => setShowTimeModal(false)}>
-                <Icon name="x" size={24} color="#1A1A2E" />
+                <Icon name="x" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.timeSlotsList}>
@@ -1248,9 +1248,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.95)',
+    borderColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1271,7 +1271,7 @@ const styles = StyleSheet.create({
 
   // Image Gallery
   imageGallery: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   mainImageContainer: {
     height: 220,
@@ -1285,13 +1285,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   imagePlaceholderText: {
     marginTop: 8,
     fontSize: 16,
     fontWeight: '600',
-    color: '#4B5563',
+    color: '#A1A1AA',
   },
   availabilityBadge: {
     position: 'absolute',
@@ -1308,7 +1308,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     marginRight: 6,
   },
   availabilityText: {
@@ -1341,7 +1341,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -1349,8 +1349,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   thumbnailActive: {
-    borderColor: '#0D7377',
-    backgroundColor: '#E8F5F4',
+    borderColor: '#FF2E40',
+    backgroundColor: 'rgba(255,46,64,0.12)',
   },
   thumbnailImage: {
     width: '100%',
@@ -1362,18 +1362,18 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
     borderBottomWidth: 8,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 16,
   },
   subsectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#4B5563',
+    color: '#A1A1AA',
     marginTop: 16,
     marginBottom: 12,
   },
@@ -1392,7 +1392,7 @@ const styles = StyleSheet.create({
   parkingName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 6,
   },
   ratingRow: {
@@ -1403,16 +1403,16 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   reviewCount: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   priceTag: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -1420,11 +1420,11 @@ const styles = StyleSheet.create({
   priceAmount: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   priceUnit: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 2,
   },
   addressRow: {
@@ -1437,7 +1437,7 @@ const styles = StyleSheet.create({
   addressText: {
     flex: 1,
     fontSize: 14,
-    color: '#4B5563',
+    color: '#A1A1AA',
   },
 
   // Quick Info Grid
@@ -1447,26 +1447,26 @@ const styles = StyleSheet.create({
   },
   quickInfoCard: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
   },
   quickInfoLabel: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 6,
   },
   quickInfoValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginTop: 2,
   },
 
   // Dimensions
   dimensionsCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
@@ -1474,7 +1474,7 @@ const styles = StyleSheet.create({
   dimensionsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 12,
   },
   dimensionsRow: {
@@ -1487,19 +1487,19 @@ const styles = StyleSheet.create({
   },
   dimensionLabel: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 4,
   },
   dimensionValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginTop: 2,
   },
   dimensionDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
 
   // Amenities
@@ -1511,7 +1511,7 @@ const styles = StyleSheet.create({
   amenityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1520,7 +1520,7 @@ const styles = StyleSheet.create({
   amenityLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
 
   // Date Selection
@@ -1532,26 +1532,26 @@ const styles = StyleSheet.create({
     width: 70,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   dateCardActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   dateDayName: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     fontWeight: '500',
   },
   dateDay: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginVertical: 4,
   },
   dateMonth: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   dateTextActive: {
     color: '#FFFFFF',
@@ -1570,16 +1570,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     gap: 6,
   },
   durationTypeButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   durationTypeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   durationTypeTextActive: {
     color: '#FFFFFF',
@@ -1587,7 +1587,7 @@ const styles = StyleSheet.create({
 
   // Time Selection
   timeSelectionContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 16,
   },
@@ -1598,15 +1598,15 @@ const styles = StyleSheet.create({
   },
   timePickerButton: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   timePickerLabel: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 4,
   },
   timePickerValue: {
@@ -1618,7 +1618,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   timeArrow: {
     paddingHorizontal: 4,
@@ -1629,7 +1629,7 @@ const styles = StyleSheet.create({
   },
   hoursSelectorLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 8,
   },
   hoursSelector: {
@@ -1641,7 +1641,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1652,16 +1652,16 @@ const styles = StyleSheet.create({
   hoursValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   hoursUnit: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
 
   // Price Breakdown
   priceBreakdownCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 16,
   },
@@ -1672,16 +1672,16 @@ const styles = StyleSheet.create({
   },
   priceRowLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   priceRowValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   priceDivider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     marginVertical: 12,
   },
   priceRowTotal: {
@@ -1691,12 +1691,12 @@ const styles = StyleSheet.create({
   priceTotalLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#0B0F0C',
   },
   priceTotalValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
 
   // Payment Options (Cash / Online)
@@ -1710,15 +1710,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 20,
     paddingHorizontal: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 16,
     borderWidth: 2,
     borderColor: 'transparent',
     position: 'relative',
   },
   paymentOptionCardActive: {
-    borderColor: '#0D7377',
-    backgroundColor: '#E8F5F4',
+    borderColor: '#FF2E40',
+    backgroundColor: 'rgba(255,46,64,0.12)',
   },
   paymentOptionCheckBadge: {
     position: 'absolute',
@@ -1728,22 +1728,22 @@ const styles = StyleSheet.create({
   paymentOptionLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#0B0F0C',
     marginTop: 10,
   },
   paymentOptionLabelActive: {
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   paymentOptionSubtitle: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 4,
     textAlign: 'center',
   },
 
   // Online confirm modal
   onlineConfirmModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -1761,10 +1761,10 @@ const styles = StyleSheet.create({
   onlineConfirmTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   confirmBreakdownCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -1778,7 +1778,7 @@ const styles = StyleSheet.create({
   onlineConfirmNoteText: {
     flex: 1,
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     lineHeight: 18,
   },
 
@@ -1796,7 +1796,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -1808,14 +1808,14 @@ const styles = StyleSheet.create({
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 6,
   },
   directionsButtonText: {
-    color: '#FFFFFF',
+    color: '#0B0F0C',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1831,29 +1831,29 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#0D7377',
-    borderColor: '#0D7377',
+    backgroundColor: '#FF2E40',
+    borderColor: '#FF2E40',
   },
   termsText: {
     flex: 1,
     fontSize: 14,
-    color: '#4B5563',
+    color: '#A1A1AA',
     lineHeight: 20,
   },
   termsLink: {
-    color: '#0D7377',
+    color: '#FF2E40',
     fontWeight: '500',
   },
   cancellationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     borderRadius: 10,
     padding: 12,
     marginTop: 16,
@@ -1862,7 +1862,7 @@ const styles = StyleSheet.create({
   cancellationText: {
     flex: 1,
     fontSize: 13,
-    color: '#0D7377',
+    color: '#FF2E40',
   },
 
   // Bottom Bar
@@ -1874,12 +1874,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: Platform.OS === 'ios' ? 30 : 16,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
@@ -1891,31 +1891,31 @@ const styles = StyleSheet.create({
   },
   bottomPriceLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   bottomPriceValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   bottomPriceDuration: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   bookButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingHorizontal: 28,
     paddingVertical: 16,
     borderRadius: 14,
     gap: 8,
   },
   bookButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: '#6B7280',
   },
   bookButtonText: {
-    color: '#FFFFFF',
+    color: '#0B0F0C',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1940,7 +1940,7 @@ const styles = StyleSheet.create({
 
   // Success modal
   successModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 24,
     padding: 32,
     margin: 24,
@@ -1952,30 +1952,30 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   successBookingNumber: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 12,
   },
   successSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
   },
   successButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 48,
   },
   successButtonText: {
-    color: '#FFFFFF',
+    color: '#0B0F0C',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1987,7 +1987,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   timeModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '60%',
@@ -1998,12 +1998,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   timeModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   timeSlotsList: {
     padding: 16,
@@ -2016,24 +2016,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 10,
     marginBottom: 8,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   timeSlotItemActive: {
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
   },
   timeSlotText: {
     fontSize: 16,
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   timeSlotTextActive: {
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
 
   // Space Selector
   spaceSelectorSubtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 12,
     marginTop: -4,
   },
@@ -2041,19 +2041,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
     backgroundColor: '#FAFAFA',
   },
   spaceCardSelected: {
-    borderColor: '#0D7377',
-    backgroundColor: '#E8F5F4',
+    borderColor: '#FF2E40',
+    backgroundColor: 'rgba(255,46,64,0.12)',
   },
   spaceCardDisabled: {
     opacity: 0.5,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   spaceCardLeft: {
     marginRight: 14,
@@ -2062,7 +2062,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2078,12 +2078,12 @@ const styles = StyleSheet.create({
   spaceCardType: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   spaceCardPrice: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   spaceCardMeta: {
     flexDirection: 'row',
@@ -2098,7 +2098,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   spaceFullBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'rgba(255,107,107,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -2124,7 +2124,7 @@ const styles = StyleSheet.create({
   },
   spaceVehicleTypes: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#6B7280',
     textTransform: 'capitalize',
   },
   spaceCheckmark: {
@@ -2133,7 +2133,7 @@ const styles = StyleSheet.create({
 
   // Add Vehicle Modal
   addVehicleModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -2151,29 +2151,29 @@ const styles = StyleSheet.create({
   addVehicleTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   addVehicleSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 20,
   },
   addVehicleLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: '#A1A1AA',
     marginBottom: 8,
   },
   addVehicleInput: {
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   vehicleTypePills: {
     flexDirection: 'row',
@@ -2186,20 +2186,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   vehicleTypePillSelected: {
-    borderColor: '#0D7377',
+    borderColor: '#FF2E40',
     backgroundColor: '#EBF3FD',
   },
   vehicleTypePillText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     fontWeight: '500',
   },
   vehicleTypePillTextSelected: {
-    color: '#0D7377',
+    color: '#FF2E40',
     fontWeight: '600',
   },
   addVehicleError: {
@@ -2208,7 +2208,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addVehicleSaveButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

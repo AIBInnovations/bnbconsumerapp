@@ -351,22 +351,22 @@ const SearchPage = ({ navigation }) => {
     <View style={styles.header}>
       <View style={styles.headerTop}>
         <TouchableOpacity style={styles.locationButton}>
-          <Icon name="map-pin" size={18} color="#0D7377" />
+          <Icon name="map-pin" size={18} color="#FF2E40" />
           <Text style={styles.locationText}>Current Location</Text>
-          <Icon name="chevron-down" size={16} color="#6B7280" />
+          <Icon name="chevron-down" size={16} color="#A1A1AA" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.profileButton}>
-          <Icon name="user" size={20} color="#1F2937" />
+          <Icon name="user" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Icon name="search" size={20} color="#9CA3AF" />
+          <Icon name="search" size={20} color="#6B7280" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for parking"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#6B7280"
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
@@ -374,18 +374,18 @@ const SearchPage = ({ navigation }) => {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Icon name="x" size={18} color="#9CA3AF" />
+              <Icon name="x" size={18} color="#6B7280" />
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.gpsButton}>
-            <Icon name="crosshair" size={18} color="#0D7377" />
+            <Icon name="crosshair" size={18} color="#FF2E40" />
           </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={[styles.filterButton, getActiveFilterCount() > 0 && styles.filterButtonActive]}
           onPress={() => setShowFilters(true)}
         >
-          <Icon name="sliders" size={20} color={getActiveFilterCount() > 0 ? '#FFFFFF' : '#0D7377'} />
+          <Icon name="sliders" size={20} color={getActiveFilterCount() > 0 ? '#FFFFFF' : '#FF2E40'} />
           {getActiveFilterCount() > 0 && (
             <View style={styles.filterBadge}>
               <Text style={styles.filterBadgeText}>{getActiveFilterCount()}</Text>
@@ -416,7 +416,7 @@ const SearchPage = ({ navigation }) => {
             <Icon
               name={filter.icon}
               size={14}
-              color={activeQuickFilter === filter.id ? '#FFFFFF' : '#6B7280'}
+              color={activeQuickFilter === filter.id ? '#FFFFFF' : '#A1A1AA'}
             />
             <Text
               style={[
@@ -452,7 +452,7 @@ const SearchPage = ({ navigation }) => {
         {aiRecommendations.map((rec) => (
           <TouchableOpacity key={rec.id} style={styles.aiCard}>
             <View style={styles.aiCardIcon}>
-              <Icon name="map-pin" size={20} color="#0D7377" />
+              <Icon name="map-pin" size={20} color="#FF2E40" />
             </View>
             <Text style={styles.aiCardName} numberOfLines={1}>{rec.name}</Text>
             <Text style={styles.aiCardReason} numberOfLines={1}>{rec.reason}</Text>
@@ -475,7 +475,7 @@ const SearchPage = ({ navigation }) => {
       <View style={styles.resultsInfo}>
         <Text style={styles.resultsCount}>{filteredResults.length} parking spots</Text>
         <TouchableOpacity style={styles.sortButton}>
-          <Icon name="arrow-up-down" size={14} color="#6B7280" />
+          <Icon name="arrow-up-down" size={14} color="#A1A1AA" />
           <Text style={styles.sortText}>Sort</Text>
         </TouchableOpacity>
       </View>
@@ -484,13 +484,13 @@ const SearchPage = ({ navigation }) => {
           style={[styles.viewToggleButton, viewMode === 'list' && styles.viewToggleButtonActive]}
           onPress={() => setViewMode('list')}
         >
-          <Icon name="list" size={18} color={viewMode === 'list' ? '#FFFFFF' : '#6B7280'} />
+          <Icon name="list" size={18} color={viewMode === 'list' ? '#FFFFFF' : '#A1A1AA'} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.viewToggleButton, viewMode === 'map' && styles.viewToggleButtonActive]}
           onPress={() => setViewMode('map')}
         >
-          <Icon name="map" size={18} color={viewMode === 'map' ? '#FFFFFF' : '#6B7280'} />
+          <Icon name="map" size={18} color={viewMode === 'map' ? '#FFFFFF' : '#A1A1AA'} />
         </TouchableOpacity>
       </View>
     </View>
@@ -503,7 +503,7 @@ const SearchPage = ({ navigation }) => {
       onPress={() => navigation.navigate('ParkingDetails', { parking: item })}
     >
       <View style={styles.parkingCardImage}>
-        <Icon name="image" size={32} color="#D1D5DB" />
+        <Icon name="image" size={32} color="rgba(255,255,255,0.10)" />
         {!item.available && (
           <View style={styles.unavailableBadge}>
             <Text style={styles.unavailableBadgeText}>Full</Text>
@@ -521,11 +521,11 @@ const SearchPage = ({ navigation }) => {
         <Text style={styles.parkingCardAddress} numberOfLines={1}>{item.address}</Text>
         <View style={styles.parkingCardMeta}>
           <View style={styles.metaItem}>
-            <Icon name="navigation" size={12} color="#6B7280" />
+            <Icon name="navigation" size={12} color="#A1A1AA" />
             <Text style={styles.metaText}>{item.distance}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Icon name="car" size={12} color="#6B7280" />
+            <Icon name="car" size={12} color="#A1A1AA" />
             <Text style={styles.metaText}>{item.spots} spots</Text>
           </View>
         </View>
@@ -612,7 +612,7 @@ const SearchPage = ({ navigation }) => {
       {/* Map Loading Overlay */}
       {!mapReady && (
         <View style={styles.mapLoadingOverlay}>
-          <ActivityIndicator size="large" color="#0D7377" />
+          <ActivityIndicator size="large" color="#FF2E40" />
         </View>
       )}
 
@@ -621,17 +621,17 @@ const SearchPage = ({ navigation }) => {
         {/* Search Bar */}
         <View style={styles.mapSearchSection}>
           <View style={styles.mapSearchBar}>
-            <Icon name="search" size={20} color="#9CA3AF" />
+            <Icon name="search" size={20} color="#6B7280" />
             <TextInput
               style={styles.mapSearchInput}
               placeholder="Search parking spots..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#6B7280"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Icon name="x" size={18} color="#9CA3AF" />
+                <Icon name="x" size={18} color="#6B7280" />
               </TouchableOpacity>
             )}
           </View>
@@ -661,7 +661,7 @@ const SearchPage = ({ navigation }) => {
               <Icon
                 name={filter.icon}
                 size={14}
-                color={activeQuickFilter === filter.id ? '#FFFFFF' : '#6B7280'}
+                color={activeQuickFilter === filter.id ? '#FFFFFF' : '#A1A1AA'}
               />
               <Text
                 style={[
@@ -679,13 +679,13 @@ const SearchPage = ({ navigation }) => {
       {/* Map Controls */}
       <View style={styles.mapControlsContainer}>
         <TouchableOpacity style={styles.myLocationButton}>
-          <Icon name="crosshair" size={20} color="#0D7377" />
+          <Icon name="crosshair" size={20} color="#FF2E40" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.mapListToggleButton}
           onPress={() => setViewMode('list')}
         >
-          <Icon name="list" size={20} color="#0D7377" />
+          <Icon name="list" size={20} color="#FF2E40" />
         </TouchableOpacity>
       </View>
 
@@ -698,7 +698,7 @@ const SearchPage = ({ navigation }) => {
             onPress={() => setViewMode('list')}
           >
             <Text style={styles.mapViewAllText}>View All</Text>
-            <Icon name="chevron-right" size={16} color="#0D7377" />
+            <Icon name="chevron-right" size={16} color="#FF2E40" />
           </TouchableOpacity>
         </View>
 
@@ -719,7 +719,7 @@ const SearchPage = ({ navigation }) => {
             >
               {/* Card Image */}
               <View style={styles.mapSpotImage}>
-                <Icon name="map-pin" size={24} color="#0D7377" />
+                <Icon name="map-pin" size={24} color="#FF2E40" />
                 {!spot.available && (
                   <View style={styles.mapSpotUnavailableBadge}>
                     <Text style={styles.mapSpotUnavailableBadgeText}>Full</Text>
@@ -738,7 +738,7 @@ const SearchPage = ({ navigation }) => {
                 </View>
 
                 <View style={styles.mapSpotMeta}>
-                  <Icon name="navigation" size={12} color="#6B7280" />
+                  <Icon name="navigation" size={12} color="#A1A1AA" />
                   <Text style={styles.mapSpotDistance}>{spot.distance}</Text>
                   <Text style={styles.mapSpotDot}>•</Text>
                   <Text style={styles.mapSpotSpots}>{spot.spots} spots</Text>
@@ -786,7 +786,7 @@ const SearchPage = ({ navigation }) => {
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <View style={styles.emptyIconContainer}>
-            <Icon name="search" size={40} color="#9CA3AF" />
+            <Icon name="search" size={40} color="#6B7280" />
           </View>
           <Text style={styles.emptyTitle}>No Parking Found</Text>
           <Text style={styles.emptySubtitle}>
@@ -816,7 +816,7 @@ const SearchPage = ({ navigation }) => {
               style={styles.filterModalClose}
               onPress={() => setShowFilters(false)}
             >
-              <Icon name="x" size={24} color="#6B7280" />
+              <Icon name="x" size={24} color="#A1A1AA" />
             </TouchableOpacity>
           </View>
 
@@ -900,7 +900,7 @@ const SearchPage = ({ navigation }) => {
                     <Icon
                       name={type.icon}
                       size={20}
-                      color={selectedVehicleTypes.includes(type.id) ? '#FFFFFF' : '#6B7280'}
+                      color={selectedVehicleTypes.includes(type.id) ? '#FFFFFF' : '#A1A1AA'}
                     />
                     <Text style={[
                       styles.vehicleTypeText,
@@ -927,14 +927,14 @@ const SearchPage = ({ navigation }) => {
                     <Icon
                       name={amenity.icon}
                       size={16}
-                      color={selectedAmenities.includes(amenity.id) ? '#0D7377' : '#6B7280'}
+                      color={selectedAmenities.includes(amenity.id) ? '#FF2E40' : '#A1A1AA'}
                     />
                     <Text style={[
                       styles.amenityButtonText,
                       selectedAmenities.includes(amenity.id) && styles.amenityButtonTextActive,
                     ]}>{amenity.label}</Text>
                     {selectedAmenities.includes(amenity.id) && (
-                      <Icon name="check" size={14} color="#0D7377" />
+                      <Icon name="check" size={14} color="#FF2E40" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -987,7 +987,7 @@ const SearchPage = ({ navigation }) => {
     if (!isLoading) return null;
     return (
       <View style={styles.loadingOverlay}>
-        <ActivityIndicator size="large" color="#0D7377" />
+        <ActivityIndicator size="large" color="#FF2E40" />
         <Text style={styles.loadingText}>Searching...</Text>
       </View>
     );
@@ -995,7 +995,7 @@ const SearchPage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="#FFFFFF" />
 
       {/* Fixed Header Section - Only show in List View */}
       {viewMode === 'list' && (
@@ -1050,7 +1050,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginLeft: 6,
     marginRight: 4,
   },
@@ -1058,7 +1058,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1070,7 +1070,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     paddingHorizontal: 12,
     marginRight: 12,
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginLeft: 8,
   },
   gpsButton: {
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   filterBadge: {
     position: 'absolute',
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
 
   // Quick Filters
   quickFiltersContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     paddingVertical: 10,
   },
   quickFiltersContent: {
@@ -1134,16 +1134,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     marginRight: 8,
   },
   quickFilterChipActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   quickFilterText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 6,
   },
   quickFilterTextActive: {
@@ -1154,7 +1154,7 @@ const styles = StyleSheet.create({
   aiSection: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   aiHeader: {
     flexDirection: 'row',
@@ -1170,20 +1170,20 @@ const styles = StyleSheet.create({
   aiTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginLeft: 8,
   },
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   aiCardsContainer: {
     paddingHorizontal: 16,
   },
   aiCard: {
     width: 160,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     padding: 12,
     marginRight: 12,
@@ -1200,11 +1200,11 @@ const styles = StyleSheet.create({
   aiCardName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   aiCardReason: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   aiCardMeta: {
@@ -1216,7 +1216,7 @@ const styles = StyleSheet.create({
   aiCardPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   aiCardRating: {
     flexDirection: 'row',
@@ -1224,7 +1224,7 @@ const styles = StyleSheet.create({
   },
   aiCardRatingText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 4,
   },
 
@@ -1242,7 +1242,7 @@ const styles = StyleSheet.create({
   },
   resultsCount: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   sortButton: {
     flexDirection: 'row',
@@ -1251,16 +1251,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   sortText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 4,
   },
   viewToggle: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 8,
     padding: 2,
   },
@@ -1272,7 +1272,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   viewToggleButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
 
   // List Content
@@ -1283,16 +1283,16 @@ const styles = StyleSheet.create({
 
   // Parking Card
   parkingCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
   },
   parkingCardImage: {
     height: 120,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -1323,12 +1323,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   parkingCardRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(242,181,60,0.12)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1341,7 +1341,7 @@ const styles = StyleSheet.create({
   },
   parkingCardAddress: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 4,
   },
   parkingCardMeta: {
@@ -1355,7 +1355,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 4,
   },
   parkingCardAmenities: {
@@ -1373,7 +1373,7 @@ const styles = StyleSheet.create({
   amenityBadgeText: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#0D7377',
+    color: '#FF2E40',
     textTransform: 'uppercase',
   },
   parkingCardFooter: {
@@ -1383,36 +1383,36 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
   },
   parkingCardPrice: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   parkingCardPriceUnit: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   bookButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   bookButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   bookButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   // Map View Container
   mapViewContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   mapViewWrapper: {
     flex: 1,
@@ -1429,7 +1429,7 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
     position: 'relative',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   map: {
     flex: 1,
@@ -1441,18 +1441,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,
   },
   mapMarker: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#0D7377',
+    borderColor: '#FF2E40',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -1460,17 +1460,17 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   mapMarkerSelected: {
-    backgroundColor: '#0D7377',
-    borderColor: '#0D7377',
+    backgroundColor: '#FF2E40',
+    borderColor: '#FF2E40',
   },
   mapMarkerUnavailable: {
-    borderColor: '#D1D5DB',
+    borderColor: 'rgba(255,255,255,0.10)',
     opacity: 0.6,
   },
   mapMarkerText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   mapMarkerTextSelected: {
     color: '#FFFFFF',
@@ -1484,7 +1484,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -1499,7 +1499,7 @@ const styles = StyleSheet.create({
     bottom: 16,
     left: 16,
     right: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
@@ -1522,7 +1522,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1533,11 +1533,11 @@ const styles = StyleSheet.create({
   selectedSpotName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   selectedSpotAddress: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   selectedSpotMeta: {
@@ -1548,7 +1548,7 @@ const styles = StyleSheet.create({
   selectedSpotPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
     marginRight: 12,
   },
   selectedSpotRating: {
@@ -1557,11 +1557,11 @@ const styles = StyleSheet.create({
   },
   selectedSpotRatingText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 4,
   },
   selectedSpotButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -1569,7 +1569,7 @@ const styles = StyleSheet.create({
   selectedSpotButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   // Empty State
@@ -1581,7 +1581,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -1589,18 +1589,18 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     paddingHorizontal: 40,
     marginBottom: 20,
   },
   emptyButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1608,7 +1608,7 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   // Filter Modal
@@ -1618,7 +1618,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   filterModal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
@@ -1629,18 +1629,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   filterModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   filterModalClose: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1653,7 +1653,7 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginBottom: 12,
   },
 
@@ -1668,25 +1668,25 @@ const styles = StyleSheet.create({
   },
   priceInputLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 4,
   },
   priceInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   priceInputPrefix: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   priceInputValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginLeft: 4,
   },
   priceRangeDivider: {
@@ -1694,7 +1694,7 @@ const styles = StyleSheet.create({
   },
   priceRangeDividerText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   priceButtons: {
     flexDirection: 'row',
@@ -1705,24 +1705,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   priceButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   priceButtonText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   priceButtonTextActive: {
-    color: '#FFFFFF',
+    color: '#0B0F0C',
     fontWeight: '600',
   },
 
   // Duration
   durationContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 10,
     padding: 4,
   },
@@ -1733,7 +1733,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   durationButtonActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -1742,10 +1742,10 @@ const styles = StyleSheet.create({
   },
   durationButtonText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   durationButtonTextActive: {
-    color: '#0D7377',
+    color: '#FF2E40',
     fontWeight: '600',
   },
 
@@ -1761,14 +1761,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   vehicleTypeButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   vehicleTypeText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 8,
   },
   vehicleTypeTextActive: {
@@ -1786,22 +1786,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   amenityButtonActive: {
     backgroundColor: '#E0F2F1',
-    borderColor: '#0D7377',
+    borderColor: '#FF2E40',
   },
   amenityButtonText: {
     flex: 1,
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 10,
   },
   amenityButtonTextActive: {
-    color: '#0D7377',
+    color: '#FF2E40',
     fontWeight: '600',
   },
 
@@ -1815,14 +1815,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   ownerTypeButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   ownerTypeText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   ownerTypeTextActive: {
     color: '#FFFFFF',
@@ -1834,32 +1834,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
     gap: 12,
   },
   resetButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   resetButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   applyButton: {
     flex: 2,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     alignItems: 'center',
   },
   applyButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   // Loading
@@ -1871,7 +1871,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 12,
   },
 
@@ -1895,7 +1895,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 48,
@@ -1908,24 +1908,24 @@ const styles = StyleSheet.create({
   mapSearchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginLeft: 10,
   },
   mapFilterButton: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0D7377',
+    shadowColor: '#FF2E40',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
   mapFilterButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   mapFiltersContent: {
     paddingHorizontal: 16,
@@ -1937,7 +1937,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     marginRight: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1946,12 +1946,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   mapFilterChipActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   mapFilterChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 6,
   },
   mapFilterChipTextActive: {
@@ -1969,7 +1969,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1982,7 +1982,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1998,7 +1998,7 @@ const styles = StyleSheet.create({
     bottom: 60,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 16,
@@ -2019,7 +2019,7 @@ const styles = StyleSheet.create({
   mapSpotsTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   mapViewAllButton: {
     flexDirection: 'row',
@@ -2028,7 +2028,7 @@ const styles = StyleSheet.create({
   mapViewAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   mapSpotsScrollContent: {
     paddingHorizontal: 16,
@@ -2037,15 +2037,15 @@ const styles = StyleSheet.create({
   // Map Spot Card
   mapSpotCard: {
     width: width * 0.36,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     marginRight: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
   },
   mapSpotCardSelected: {
-    borderColor: '#0D7377',
+    borderColor: '#FF2E40',
     borderWidth: 2,
   },
   mapSpotImage: {
@@ -2082,13 +2082,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginRight: 4,
   },
   mapSpotRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(242,181,60,0.12)',
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
@@ -2106,17 +2106,17 @@ const styles = StyleSheet.create({
   },
   mapSpotDistance: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginLeft: 4,
   },
   mapSpotDot: {
     fontSize: 11,
-    color: '#D1D5DB',
+    color: 'rgba(255,255,255,0.10)',
     marginHorizontal: 4,
   },
   mapSpotSpots: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   mapSpotFooter: {
     flexDirection: 'row',
@@ -2124,30 +2124,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
   },
   mapSpotPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   mapSpotPriceUnit: {
     fontSize: 10,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   mapSpotBookButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
   },
   mapSpotBookButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   mapSpotBookButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 });
 

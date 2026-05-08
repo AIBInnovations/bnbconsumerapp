@@ -164,7 +164,7 @@ const groupSpacesByProperty = (spaces, userLat, userLng) => {
 
 // Vehicle category filters
 const categories = [
-  { id: 'all', icon: 'view-grid', label: 'All', color: '#0D7377' },
+  { id: 'all', icon: 'view-grid', label: 'All', color: '#D9FF5A' },
   { id: 'car', icon: 'car', label: 'Car', color: '#EC4899' },
   { id: 'bike', icon: 'motorbike', label: 'Bike', color: '#10B981' },
   { id: 'bus', icon: 'bus', label: 'Bus', color: '#F59E0B' },
@@ -383,7 +383,7 @@ const HomePage = ({ navigation }) => {
             left: 0,
             right: 0,
             height: 65,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: 'rgba(255,255,255,0.05)',
             borderTopWidth: 0,
             paddingTop: 8,
             paddingBottom: 8,
@@ -815,13 +815,13 @@ const HomePage = ({ navigation }) => {
             style={[styles.viewToggleButton, viewMode === 'list' && styles.viewToggleButtonActive]}
             onPress={() => setViewMode('list')}
           >
-            <Icon name="list" size={18} color={viewMode === 'list' ? '#FFFFFF' : '#6B7280'} />
+            <Icon name="list" size={18} color={viewMode === 'list' ? '#FFFFFF' : '#A1A1AA'} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.viewToggleButton, viewMode === 'map' && styles.viewToggleButtonActive]}
             onPress={() => setViewMode('map')}
           >
-            <Icon name="map" size={18} color={viewMode === 'map' ? '#FFFFFF' : '#6B7280'} />
+            <Icon name="map" size={18} color={viewMode === 'map' ? '#FFFFFF' : '#A1A1AA'} />
           </TouchableOpacity>
         </View>
       </View>
@@ -835,7 +835,7 @@ const HomePage = ({ navigation }) => {
       onPress={() => handleSpotPress(item)}
     >
       <View style={styles.parkingCardImage}>
-        <ParkingPinIcon size={36} color="#0D7377" />
+        <ParkingPinIcon size={36} color="#D9FF5A" />
         {item.available === 0 ? (
           <View style={[styles.lowAvailabilityBadgeCard, { backgroundColor: '#EF4444' }]}>
             <Text style={styles.lowAvailabilityTextCard}>Fully Booked</Text>
@@ -857,11 +857,11 @@ const HomePage = ({ navigation }) => {
         <Text style={styles.parkingCardAddress} numberOfLines={1}>{item.address}</Text>
         <View style={styles.parkingCardMeta}>
           <View style={styles.metaItem}>
-            <Icon name="navigation" size={12} color="#0D7377" />
+            <Icon name="navigation" size={12} color="#D9FF5A" />
             <Text style={styles.metaText}>{item.distance}</Text>
           </View>
           <View style={styles.metaItem}>
-            <VehicleIcon type={item.type} size={12} color="#0D7377" />
+            <VehicleIcon type={item.type} size={12} color="#D9FF5A" />
             <Text style={[styles.metaText, item.available === 0 && { color: '#EF4444' }]}>
               {item.available === 0 ? 'No spots left' : `${item.available} spots`}
             </Text>
@@ -884,7 +884,7 @@ const HomePage = ({ navigation }) => {
             <Text style={styles.parkingCardPrice}>{item.price}<Text style={styles.parkingCardPriceUnit}>/hr</Text></Text>
           </View>
           {item.available === 0 ? (
-            <View style={[styles.parkingCardBookButton, { backgroundColor: '#9CA3AF' }]}>
+            <View style={[styles.parkingCardBookButton, { backgroundColor: '#6B7280' }]}>
               <Text style={styles.parkingCardBookButtonText}>Booked</Text>
             </View>
           ) : (
@@ -933,7 +933,7 @@ const HomePage = ({ navigation }) => {
             activeOpacity={0.9}
           >
             <View style={styles.recommendationImageLeft}>
-              <ParkingPinIcon size={24} color="#0D7377" />
+              <ParkingPinIcon size={24} color="#D9FF5A" />
               {spot.available === 0 ? (
                 <View style={[styles.lowAvailabilityBadge, { backgroundColor: '#EF4444' }]}>
                   <Text style={styles.lowAvailabilityText}>Booked</Text>
@@ -951,7 +951,7 @@ const HomePage = ({ navigation }) => {
               </View>
 
               <View style={styles.recommendationMeta}>
-                <Icon name="navigation" size={12} color="#0D7377" />
+                <Icon name="navigation" size={12} color="#D9FF5A" />
                 <Text style={styles.recommendationDistance}>{spot.distance}</Text>
                 <Text style={styles.recommendationDot}>•</Text>
                 <Text style={[styles.recommendationSpots, spot.available === 0 && { color: '#EF4444' }]}>
@@ -962,7 +962,7 @@ const HomePage = ({ navigation }) => {
               <View style={styles.recommendationFooter}>
                 <Text style={styles.recommendationPrice}>{spot.price}<Text style={styles.recommendationPriceUnit}>/hr</Text></Text>
                 {spot.available === 0 ? (
-                  <View style={[styles.recommendationBookButton, { backgroundColor: '#9CA3AF' }]}>
+                  <View style={[styles.recommendationBookButton, { backgroundColor: '#6B7280' }]}>
                     <Text style={styles.recommendationBookButtonText}>Booked</Text>
                   </View>
                 ) : (
@@ -1016,7 +1016,7 @@ const HomePage = ({ navigation }) => {
         ) : spotsError ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Icon name="wifi-off" size={40} color="#9CA3AF" />
+              <Icon name="wifi-off" size={40} color="#6B7280" />
             </View>
             <Text style={styles.emptyTitle}>Could Not Load Spots</Text>
             <Text style={styles.emptySubtitle}>{spotsError}</Text>
@@ -1027,7 +1027,7 @@ const HomePage = ({ navigation }) => {
         ) : !userLocation ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Icon name="map-pin" size={40} color="#9CA3AF" />
+              <Icon name="map-pin" size={40} color="#6B7280" />
             </View>
             <Text style={styles.emptyTitle}>Waiting for Location</Text>
             <Text style={styles.emptySubtitle}>Allow location access to see nearby parking spots</Text>
@@ -1035,7 +1035,7 @@ const HomePage = ({ navigation }) => {
         ) : (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Icon name="search" size={40} color="#9CA3AF" />
+              <Icon name="search" size={40} color="#6B7280" />
             </View>
             <Text style={styles.emptyTitle}>No Parking Found</Text>
             <Text style={styles.emptySubtitle}>
@@ -1079,11 +1079,11 @@ const HomePage = ({ navigation }) => {
         {/* Search Section */}
         <View style={styles.searchSection}>
           <View style={styles.searchBar}>
-            <Icon name="search" size={20} color="#9CA3AF" />
+            <Icon name="search" size={20} color="#6B7280" />
             <TextInput
               style={styles.searchInput}
               placeholder="Search Location"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#6B7280"
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFocus={() => setIsSearchFocused(true)}
@@ -1094,7 +1094,7 @@ const HomePage = ({ navigation }) => {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Icon name="x" size={18} color="#9CA3AF" />
+                <Icon name="x" size={18} color="#6B7280" />
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.gpsButtonMap} onPress={centerOnUserLocation}>
@@ -1293,21 +1293,18 @@ const HomePage = ({ navigation }) => {
               <View style={styles.recommendationsTitleRow}>
                 <Text style={styles.recommendationsTitle}>Nearby Parking</Text>
               </View>
-              {recommendationsExpanded ? (
-                <TouchableOpacity onPress={closeAllRecommendations} activeOpacity={0.7}>
-                  <View style={styles.closeButtonCircle}>
-                    <Icon name="x" size={18} color="#1A1A2E" />
-                  </View>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity onPress={openAllRecommendations} activeOpacity={0.7}>
-                  <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={recommendationsExpanded ? closeAllRecommendations : openAllRecommendations}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllText}>
+                  {recommendationsExpanded ? 'View Less' : 'View All'}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {isLoadingSpots ? (
-              <ActivityIndicator color="#0D7377" style={{ marginVertical: 16, marginHorizontal: 16 }} />
+              <ActivityIndicator color="#D9FF5A" style={{ marginVertical: 16, marginHorizontal: 16 }} />
             ) : spotsError ? (
               <Text style={[styles.spotsErrorText, { marginHorizontal: 16 }]}>{spotsError}</Text>
             ) : recommendationsExpanded ? (
@@ -1315,18 +1312,18 @@ const HomePage = ({ navigation }) => {
                 data={filteredSpots}
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
+                style={{ alignSelf: 'stretch' }}
                 contentContainerStyle={styles.allRecommendationsListContent}
                 renderItem={({ item }) => (
-                  // Same card style as the compact horizontal mode — same
-                  // 320 width, same 120 height, same row layout — so the
-                  // card visual doesn't jump in size when "View All" is
-                  // tapped. Right margin is zeroed since we're stacking
-                  // vertically; alignSelf:center centers each card in the
-                  // wider list.
+                  // Same card style + same X position as compact mode.
+                  // alignSelf: flex-start + the list's paddingHorizontal:16
+                  // pin the first card to the same left edge it had in the
+                  // horizontal scroll, so there's no left→center drift on
+                  // expand. marginRight zeroed for vertical stacking.
                   <TouchableOpacity
                     style={[
                       styles.recommendationCard,
-                      { alignSelf: 'center', marginRight: 0 },
+                      { alignSelf: 'flex-start', marginRight: 0 },
                     ]}
                     onPress={() => {
                       closeAllRecommendations();
@@ -1335,7 +1332,7 @@ const HomePage = ({ navigation }) => {
                     activeOpacity={0.9}
                   >
                     <View style={styles.recommendationImageLeft}>
-                      <ParkingPinIcon size={28} color="#0D7377" />
+                      <ParkingPinIcon size={28} color="#D9FF5A" />
                       {item.available === 0 ? (
                         <View style={[styles.lowAvailabilityBadge, { backgroundColor: '#EF4444' }]}>
                           <Text style={styles.lowAvailabilityText}>Booked</Text>
@@ -1351,7 +1348,7 @@ const HomePage = ({ navigation }) => {
                         <Text style={styles.recommendationName} numberOfLines={1}>{item.name}</Text>
                       </View>
                       <View style={styles.recommendationMeta}>
-                        <Icon name="navigation" size={12} color="#0D7377" />
+                        <Icon name="navigation" size={12} color="#D9FF5A" />
                         <Text style={styles.recommendationDistance}>{item.distance}</Text>
                         <Text style={styles.recommendationDot}>•</Text>
                         <Text style={[styles.recommendationSpots, item.available === 0 && { color: '#EF4444' }]}>
@@ -1361,7 +1358,7 @@ const HomePage = ({ navigation }) => {
                       <View style={styles.recommendationFooter}>
                         <Text style={styles.recommendationPrice}>{item.price}<Text style={styles.recommendationPriceUnit}>/hr</Text></Text>
                         {item.available === 0 ? (
-                          <View style={[styles.recommendationBookButton, { backgroundColor: '#9CA3AF' }]}>
+                          <View style={[styles.recommendationBookButton, { backgroundColor: '#6B7280' }]}>
                             <Text style={styles.recommendationBookButtonText}>Booked</Text>
                           </View>
                         ) : (
@@ -1382,7 +1379,7 @@ const HomePage = ({ navigation }) => {
                 ListEmptyComponent={
                   <View style={styles.emptyState}>
                     <View style={styles.emptyIconContainer}>
-                      <Icon name="search" size={40} color="#9CA3AF" />
+                      <Icon name="search" size={40} color="#6B7280" />
                     </View>
                     <Text style={styles.emptyTitle}>No Parking Found</Text>
                     <Text style={styles.emptySubtitle}>
@@ -1409,7 +1406,7 @@ const HomePage = ({ navigation }) => {
                 >
                   {/* Card Image */}
                   <View style={styles.recommendationImageLeft}>
-                    <ParkingPinIcon size={24} color="#0D7377" />
+                    <ParkingPinIcon size={24} color="#D9FF5A" />
                     {spot.available === 0 ? (
                       <View style={[styles.lowAvailabilityBadge, { backgroundColor: '#EF4444' }]}>
                         <Text style={styles.lowAvailabilityText}>Booked</Text>
@@ -1428,7 +1425,7 @@ const HomePage = ({ navigation }) => {
                     </View>
 
                     <View style={styles.recommendationMeta}>
-                      <Icon name="navigation" size={12} color="#6B7280" />
+                      <Icon name="navigation" size={12} color="#A1A1AA" />
                       <Text style={styles.recommendationDistance}>{spot.distance}</Text>
                       <Text style={styles.recommendationDot}>•</Text>
                       <Text style={[styles.recommendationSpots, spot.available === 0 && { color: '#EF4444' }]}>
@@ -1439,7 +1436,7 @@ const HomePage = ({ navigation }) => {
                     <View style={styles.recommendationFooter}>
                       <Text style={styles.recommendationPrice}>{spot.price}<Text style={styles.recommendationPriceUnit}>/hr</Text></Text>
                       {spot.available === 0 ? (
-                        <View style={[styles.recommendationBookButton, { backgroundColor: '#9CA3AF' }]}>
+                        <View style={[styles.recommendationBookButton, { backgroundColor: '#6B7280' }]}>
                           <Text style={styles.recommendationBookButtonText}>Booked</Text>
                         </View>
                       ) : (
@@ -1487,7 +1484,7 @@ const HomePage = ({ navigation }) => {
                 </View>
                 <TouchableOpacity style={styles.modalCloseButton} onPress={closeModal}>
                   <View style={styles.closeButtonCircle}>
-                    <Icon name="x" size={18} color="#1A1A2E" />
+                    <Icon name="x" size={18} color="#FFFFFF" />
                   </View>
                 </TouchableOpacity>
 
@@ -1546,7 +1543,7 @@ const HomePage = ({ navigation }) => {
                     </View>
 
                     <View style={styles.parkingAddressRow}>
-                      <Icon name="map-pin" size={14} color="#6B7280" />
+                      <Icon name="map-pin" size={14} color="#A1A1AA" />
                       <Text style={styles.parkingAddress}>{selectedParkingData.address}</Text>
                     </View>
 
@@ -1586,7 +1583,7 @@ const HomePage = ({ navigation }) => {
                       <Icon name="navigation" size={18} color="#1A73E8" />
                     </TouchableOpacity>
                     {selectedParkingData.available === 0 ? (
-                      <View style={[styles.bookButton, { backgroundColor: '#9CA3AF' }]}>
+                      <View style={[styles.bookButton, { backgroundColor: '#6B7280' }]}>
                         <Text style={styles.bookButtonText}>Booked</Text>
                       </View>
                     ) : (
@@ -1622,7 +1619,7 @@ const HomePage = ({ navigation }) => {
               <Text style={styles.filterTitle}>Filters</Text>
               <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
                 <View style={styles.closeButtonCircle}>
-                  <Icon name="x" size={18} color="#1A1A2E" />
+                  <Icon name="x" size={18} color="#FFFFFF" />
                 </View>
               </TouchableOpacity>
             </View>
@@ -1670,7 +1667,7 @@ const HomePage = ({ navigation }) => {
                       <Icon
                         name={duration.icon}
                         size={14}
-                        color={selectedDuration === duration.id ? '#FFFFFF' : '#6B7280'}
+                        color={selectedDuration === duration.id ? '#FFFFFF' : '#A1A1AA'}
                         style={styles.filterChipIcon}
                       />
                       <Text
@@ -1702,7 +1699,7 @@ const HomePage = ({ navigation }) => {
                       <Icon
                         name={amenity.icon}
                         size={16}
-                        color={selectedAmenities.includes(amenity.id) ? '#FFFFFF' : '#0D7377'}
+                        color={selectedAmenities.includes(amenity.id) ? '#FFFFFF' : '#D9FF5A'}
                       />
                       <Text
                         style={[
@@ -1786,12 +1783,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -1822,12 +1819,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -1848,12 +1845,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -1874,7 +1871,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1883,7 +1880,7 @@ const styles = StyleSheet.create({
   listSearchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginLeft: 8,
     padding: 0,
   },
@@ -1891,7 +1888,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(217,255,90,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
@@ -1900,7 +1897,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(217,255,90,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
@@ -1909,7 +1906,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -1926,11 +1923,11 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   viewToggle: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 8,
     padding: 2,
   },
@@ -1942,13 +1939,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   viewToggleButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
   },
   mapToggleButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1965,7 +1962,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1997,7 +1994,7 @@ const styles = StyleSheet.create({
   listRecommendationCard: {
     width: 320,
     height: 120,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     marginRight: 12,
     marginVertical: 6,
@@ -2018,7 +2015,7 @@ const styles = StyleSheet.create({
   allParkingTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
 
   // Parking Card — soft teal surface, lighter than the deep
@@ -2029,7 +2026,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginBottom: 16,
     overflow: 'hidden',
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.14,
     shadowRadius: 22,
@@ -2169,7 +2166,7 @@ const styles = StyleSheet.create({
     fontFamily: fontStacks.medium,
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   spotsErrorText: {
@@ -2190,7 +2187,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -2198,18 +2195,18 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     paddingHorizontal: 32,
     marginBottom: 20,
   },
   emptyButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -2217,7 +2214,7 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   searchSection: {
@@ -2230,7 +2227,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 46,
@@ -2243,7 +2240,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginLeft: 10,
     backgroundColor: 'transparent',
     padding: 0,
@@ -2253,10 +2250,10 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0D7377',
+    shadowColor: '#D9FF5A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -2274,12 +2271,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -2288,7 +2285,7 @@ const styles = StyleSheet.create({
   categoryButtonActive: {
     backgroundColor: palette.primary,
     borderColor: palette.primary,
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.16,
     shadowRadius: 10,
@@ -2297,12 +2294,12 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
     marginBottom: 55,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   // Always mounted map container - prevents black flash on Android
   mapContainerAlwaysMounted: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     zIndex: 1,
   },
   // Hidden container style - keeps component mounted but invisible
@@ -2312,12 +2309,12 @@ const styles = StyleSheet.create({
   },
   mapWrapper: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     overflow: 'hidden',
   },
   map: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   // My Location Button. `bottom` is set inline from the measured
   // bottom-sheet height so the button always sits just above the sheet.
@@ -2327,7 +2324,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -2345,11 +2342,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 16,
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
@@ -2374,12 +2371,12 @@ const styles = StyleSheet.create({
   recommendationsTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   viewAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#D9FF5A',
   },
   recommendationsScrollContent: {
     paddingHorizontal: 16,
@@ -2393,7 +2390,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     overflow: 'hidden',
     flexDirection: 'row',
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.14,
     shadowRadius: 14,
@@ -2523,7 +2520,7 @@ const styles = StyleSheet.create({
     fontFamily: fontStacks.medium,
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
   userLocationMarker: {
     alignItems: 'center',
@@ -2543,10 +2540,10 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    shadowColor: '#0D7377',
+    shadowColor: '#D9FF5A',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
@@ -2571,21 +2568,21 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 2,
-    borderColor: '#0D7377',
+    borderColor: '#D9FF5A',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
   },
   pinCircleActive: {
-    backgroundColor: '#0D7377',
-    borderColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
+    borderColor: '#D9FF5A',
   },
   pinPrice: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#D9FF5A',
     textAlign: 'center',
   },
   pinPriceActive: {
@@ -2595,22 +2592,22 @@ const styles = StyleSheet.create({
   pinBox: {
     height: 26,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 2,
-    borderColor: '#0D7377',
+    borderColor: '#D9FF5A',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 7,
     zIndex: 2,
   },
   pinBoxActive: {
-    backgroundColor: '#0D7377',
-    borderColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
+    borderColor: '#D9FF5A',
   },
   pinBoxPrice: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#D9FF5A',
     textAlign: 'center',
     letterSpacing: -0.3,
   },
@@ -2622,12 +2619,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 10,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#0D7377',
+    borderTopColor: '#D9FF5A',
     marginTop: -2,
     zIndex: 1,
   },
   pinTailActive: {
-    borderTopColor: '#0D7377',
+    borderTopColor: '#D9FF5A',
   },
   // Modal Styles
   modalOverlay: {
@@ -2640,7 +2637,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 40, 40, 0.45)',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -2662,7 +2659,7 @@ const styles = StyleSheet.create({
   modalDragIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 2,
   },
   modalCloseButton: {
@@ -2675,7 +2672,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2688,7 +2685,7 @@ const styles = StyleSheet.create({
   parkingImagePlaceholder: {
     width: '100%',
     height: 180,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -2698,7 +2695,7 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH - 40,
     height: 180,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   parkingImageScroll: {
     width: SCREEN_WIDTH - 40,
@@ -2730,13 +2727,13 @@ const styles = StyleSheet.create({
   parkingName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     flex: 1,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(242,181,60,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -2755,7 +2752,7 @@ const styles = StyleSheet.create({
   },
   parkingAddress: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
     flex: 1,
   },
   parkingDetailsRow: {
@@ -2770,7 +2767,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#4B5563',
+    color: '#A1A1AA',
     fontWeight: '500',
   },
   modalFooter: {
@@ -2779,25 +2776,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
   },
   priceContainer: {
     flex: 1,
   },
   priceLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 2,
   },
   priceValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#D9FF5A',
   },
   priceUnit: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   modalButtonsRow: {
     flexDirection: 'row',
@@ -2808,20 +2805,20 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(217,255,90,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#BFDBFE',
   },
   bookButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
   },
   bookButtonText: {
-    color: '#FFFFFF',
+    color: '#0B0F0C',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -2843,7 +2840,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   filterModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -2857,22 +2854,22 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   filterTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
   },
   filterSection: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A2E',
+    color: '#FFFFFF',
     marginBottom: 12,
   },
   filterOptionsRow: {
@@ -2886,13 +2883,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   filterChipActive: {
-    backgroundColor: '#0D7377',
-    borderColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
+    borderColor: '#D9FF5A',
   },
   filterChipIcon: {
     marginRight: 6,
@@ -2900,7 +2897,7 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   filterChipTextActive: {
     color: '#FFFFFF',
@@ -2916,19 +2913,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(217,255,90,0.12)',
     borderWidth: 1,
     borderColor: '#BFDBFE',
     gap: 8,
   },
   amenityChipActive: {
-    backgroundColor: '#0D7377',
-    borderColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
+    borderColor: '#D9FF5A',
   },
   amenityChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#0D7377',
+    color: '#D9FF5A',
   },
   amenityChipTextActive: {
     color: '#FFFFFF',
@@ -2942,31 +2939,31 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   resetButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   applyButton: {
     flex: 2,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#D9FF5A',
     alignItems: 'center',
   },
   applyButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
   // All Recommendations sheet — visually anchored to the same place as
   // the inline `recommendationsSection` so it reads as that section
   // expanding upward, not as a new sheet.
   allRecommendationsModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
@@ -2974,7 +2971,7 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
     flex: 1,
     marginTop: 60,
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.08,
     shadowRadius: 18,
@@ -3009,7 +3006,11 @@ const styles = StyleSheet.create({
     color: palette.textMuted,
     paddingBottom: 14,
   },
+  // Match the compact horizontal scroll's paddingHorizontal so the first
+  // card sits at the same X position in both modes — no left/center
+  // shift when switching between compact and expanded.
   allRecommendationsListContent: {
+    paddingHorizontal: 16,
     paddingBottom: 20,
   },
   allRecommendationsCard: {
@@ -3018,7 +3019,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     marginBottom: 12,
     overflow: 'hidden',
-    shadowColor: '#0F2828',
+    shadowColor: '#B8E632',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
     shadowRadius: 14,
@@ -3081,7 +3082,7 @@ const styles = StyleSheet.create({
     fontFamily: fontStacks.medium,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 });
 

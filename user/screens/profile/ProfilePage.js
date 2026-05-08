@@ -344,7 +344,7 @@ const ProfilePage = ({ navigation }) => {
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Icon name="arrow-left" size={24} color="#1F2937" />
+        <Icon name="arrow-left" size={24} color="#FFFFFF" />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Profile</Text>
       <TouchableOpacity
@@ -482,7 +482,7 @@ const ProfilePage = ({ navigation }) => {
                 value={editedName}
                 onChangeText={setEditedName}
                 placeholder="Full Name"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
               />
             </View>
             <View style={styles.inputGroup}>
@@ -492,7 +492,7 @@ const ProfilePage = ({ navigation }) => {
                 value={user?.email || ''}
                 editable={false}
                 placeholder="—"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
               />
             </View>
             <View style={styles.inputGroup}>
@@ -502,7 +502,7 @@ const ProfilePage = ({ navigation }) => {
                 value={user?.phone ? `+91 ${user.phone}` : ''}
                 editable={false}
                 placeholder="—"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
               />
             </View>
             <TouchableOpacity
@@ -571,7 +571,7 @@ const ProfilePage = ({ navigation }) => {
       ) : vehicles.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconContainer}>
-            <Icon name="truck" size={32} color="#9CA3AF" />
+            <Icon name="truck" size={32} color="#6B7280" />
           </View>
           <Text style={styles.emptyTitle}>No Vehicles Added</Text>
           <Text style={styles.emptySubtitle}>
@@ -612,7 +612,7 @@ const ProfilePage = ({ navigation }) => {
                 style={styles.vehicleActionButton}
                 onPress={() => openEditVehicle(vehicle)}
               >
-                <Icon name="edit-2" size={16} color="#6B7280" />
+                <Icon name="edit-2" size={16} color="#A1A1AA" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.vehicleActionButton}
@@ -644,7 +644,7 @@ const ProfilePage = ({ navigation }) => {
       {paymentMethods.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconContainer}>
-            <Icon name="credit-card" size={32} color="#9CA3AF" />
+            <Icon name="credit-card" size={32} color="#6B7280" />
           </View>
           <Text style={styles.emptyTitle}>No Payment Methods</Text>
           <Text style={styles.emptySubtitle}>
@@ -717,8 +717,8 @@ const ProfilePage = ({ navigation }) => {
           <Switch
             value={notifBooking}
             onValueChange={handleToggleBooking}
-            trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifBooking ? '#0D7377' : '#9CA3AF'}
+            trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#1A73E850' }}
+            thumbColor={notifBooking ? '#FF2E40' : '#6B7280'}
           />
         </View>
 
@@ -730,8 +730,8 @@ const ProfilePage = ({ navigation }) => {
           <Switch
             value={notifPaymentConfirm}
             onValueChange={setNotifPaymentConfirm}
-            trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifPaymentConfirm ? '#0D7377' : '#9CA3AF'}
+            trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#1A73E850' }}
+            thumbColor={notifPaymentConfirm ? '#FF2E40' : '#6B7280'}
           />
         </View>
 
@@ -743,8 +743,8 @@ const ProfilePage = ({ navigation }) => {
           <Switch
             value={notifParkingAlerts}
             onValueChange={setNotifParkingAlerts}
-            trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifParkingAlerts ? '#0D7377' : '#9CA3AF'}
+            trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#1A73E850' }}
+            thumbColor={notifParkingAlerts ? '#FF2E40' : '#6B7280'}
           />
         </View>
 
@@ -756,8 +756,8 @@ const ProfilePage = ({ navigation }) => {
           <Switch
             value={notifExpiryReminders}
             onValueChange={setNotifExpiryReminders}
-            trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifExpiryReminders ? '#0D7377' : '#9CA3AF'}
+            trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#1A73E850' }}
+            thumbColor={notifExpiryReminders ? '#FF2E40' : '#6B7280'}
           />
         </View>
 
@@ -769,8 +769,8 @@ const ProfilePage = ({ navigation }) => {
           <Switch
             value={notifPromotion}
             onValueChange={handleTogglePromotion}
-            trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifPromotion ? '#0D7377' : '#9CA3AF'}
+            trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#1A73E850' }}
+            thumbColor={notifPromotion ? '#FF2E40' : '#6B7280'}
           />
         </View>
 
@@ -782,8 +782,8 @@ const ProfilePage = ({ navigation }) => {
           <Switch
             value={notifNewsletter}
             onValueChange={setNotifNewsletter}
-            trackColor={{ false: '#E5E7EB', true: '#1A73E850' }}
-            thumbColor={notifNewsletter ? '#0D7377' : '#9CA3AF'}
+            trackColor={{ false: 'rgba(255,255,255,0.08)', true: '#1A73E850' }}
+            thumbColor={notifNewsletter ? '#FF2E40' : '#6B7280'}
           />
         </View>
       </View>
@@ -808,7 +808,7 @@ const ProfilePage = ({ navigation }) => {
           <Text style={styles.quickLinkTitle}>Subscription</Text>
           <Text style={styles.quickLinkSubtitle}>Manage your premium plan</Text>
         </View>
-        <Icon name="chevron-right" size={20} color="#9CA3AF" />
+        <Icon name="chevron-right" size={20} color="#6B7280" />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -827,7 +827,7 @@ const ProfilePage = ({ navigation }) => {
           <Text style={styles.quickLinkTitle}>Security</Text>
           <Text style={styles.quickLinkSubtitle}>OTP-based sign-in</Text>
         </View>
-        <Icon name="chevron-right" size={20} color="#9CA3AF" />
+        <Icon name="chevron-right" size={20} color="#6B7280" />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -841,21 +841,21 @@ const ProfilePage = ({ navigation }) => {
           <Text style={styles.quickLinkTitle}>Help & Support</Text>
           <Text style={styles.quickLinkSubtitle}>FAQs and contact us</Text>
         </View>
-        <Icon name="chevron-right" size={20} color="#9CA3AF" />
+        <Icon name="chevron-right" size={20} color="#6B7280" />
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.quickLinkItem}
         onPress={() => navigation.navigate('About')}
       >
-        <View style={[styles.quickLinkIcon, { backgroundColor: '#6B7280' }]}>
+        <View style={[styles.quickLinkIcon, { backgroundColor: '#A1A1AA' }]}>
           <Icon name="info" size={20} color="#FFFFFF" />
         </View>
         <View style={styles.quickLinkContent}>
           <Text style={styles.quickLinkTitle}>About</Text>
           <Text style={styles.quickLinkSubtitle}>App info & terms</Text>
         </View>
-        <Icon name="chevron-right" size={20} color="#9CA3AF" />
+        <Icon name="chevron-right" size={20} color="#6B7280" />
       </TouchableOpacity>
     </View>
   );
@@ -889,7 +889,7 @@ const ProfilePage = ({ navigation }) => {
               style={styles.modalCloseButton}
               onPress={() => setShowVehicleModal(false)}
             >
-              <Icon name="x" size={24} color="#6B7280" />
+              <Icon name="x" size={24} color="#A1A1AA" />
             </TouchableOpacity>
           </View>
 
@@ -899,7 +899,7 @@ const ProfilePage = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="e.g., Toyota"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 value={vehicleForm.make}
                 onChangeText={(text) => setVehicleForm(f => ({ ...f, make: text }))}
               />
@@ -910,7 +910,7 @@ const ProfilePage = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="e.g., Camry"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 value={vehicleForm.model}
                 onChangeText={(text) => setVehicleForm(f => ({ ...f, model: text }))}
               />
@@ -921,7 +921,7 @@ const ProfilePage = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="2022"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 keyboardType="numeric"
                 value={vehicleForm.year}
                 onChangeText={(text) => setVehicleForm(f => ({ ...f, year: text }))}
@@ -954,7 +954,7 @@ const ProfilePage = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="ABC 1234"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 autoCapitalize="characters"
                 value={vehicleForm.registrationNumber}
                 onChangeText={(text) => setVehicleForm(f => ({ ...f, registrationNumber: text }))}
@@ -1012,7 +1012,7 @@ const ProfilePage = ({ navigation }) => {
               style={styles.modalCloseButton}
               onPress={() => setShowPaymentModal(false)}
             >
-              <Icon name="x" size={24} color="#6B7280" />
+              <Icon name="x" size={24} color="#A1A1AA" />
             </TouchableOpacity>
           </View>
 
@@ -1022,7 +1022,7 @@ const ProfilePage = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="1234 5678 9012 3456"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 keyboardType="numeric"
                 maxLength={19}
               />
@@ -1033,7 +1033,7 @@ const ProfilePage = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="John Doe"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 autoCapitalize="words"
               />
             </View>
@@ -1044,7 +1044,7 @@ const ProfilePage = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="MM/YY"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor="#6B7280"
                   keyboardType="numeric"
                   maxLength={5}
                 />
@@ -1054,7 +1054,7 @@ const ProfilePage = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="123"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor="#6B7280"
                   keyboardType="numeric"
                   maxLength={4}
                   secureTextEntry
@@ -1103,7 +1103,7 @@ const ProfilePage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor={palette.bg} />
+      <StatusBar barStyle="light-content" backgroundColor={palette.bg} />
 
       {renderHeader()}
 
@@ -1147,11 +1147,11 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.95)',
+    borderColor: 'rgba(255,255,255,0.10)',
   },
   headerTitle: {
     fontFamily: fontStacks.regular,
@@ -1164,11 +1164,11 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.95)',
+    borderColor: 'rgba(255,255,255,0.10)',
   },
   content: {
     flex: 1,
@@ -1196,7 +1196,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -1221,7 +1221,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -1253,13 +1253,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
   },
   heroBadgeGold: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(242,181,60,0.12)',
   },
   heroBadgeText: {
     fontFamily: fontStacks.medium,
@@ -1314,27 +1314,27 @@ const styles = StyleSheet.create({
   completionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: '#A1A1AA',
   },
   completionPercentage: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0D7377',
+    color: '#FF2E40',
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     borderRadius: 4,
   },
   completionHint: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 8,
   },
 
@@ -1364,7 +1364,7 @@ const styles = StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1372,7 +1372,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
     marginLeft: 4,
   },
   cancelButton: {
@@ -1382,12 +1382,12 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1395,7 +1395,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
     marginLeft: 4,
   },
 
@@ -1408,7 +1408,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#E8F5F4',
+    backgroundColor: 'rgba(255,46,64,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -1429,7 +1429,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
@@ -1437,7 +1437,7 @@ const styles = StyleSheet.create({
   },
   changePictureText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 8,
   },
 
@@ -1466,13 +1466,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
 
   // Input styles (Edit mode)
@@ -1490,7 +1490,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: '#A1A1AA',
     marginBottom: 8,
   },
   input: {
@@ -1503,10 +1503,10 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   inputReadOnly: {
-    color: '#9CA3AF',
+    color: '#6B7280',
   },
   saveButton: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -1518,7 +1518,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
   },
 
   // Vehicle row — no inner background. The icon-circle + text + actions
@@ -1549,17 +1549,17 @@ const styles = StyleSheet.create({
   vehicleName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   vehicleDetails: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   vehicleRegistration: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
     marginTop: 4,
   },
   vehicleActions: {
@@ -1577,7 +1577,7 @@ const styles = StyleSheet.create({
 
   // Default Badge
   defaultBadge: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'rgba(124,224,107,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -1606,19 +1606,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: '#A1A1AA',
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     textAlign: 'center',
     marginBottom: 16,
   },
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
@@ -1626,7 +1626,7 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#0B0F0C',
     marginLeft: 8,
   },
 
@@ -1657,18 +1657,18 @@ const styles = StyleSheet.create({
   paymentType: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   paymentExpiry: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
   paymentRemoveButton: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'rgba(255,107,107,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1679,13 +1679,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#0D7377',
+    borderColor: '#FF2E40',
     marginTop: 4,
   },
   manageButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0D7377',
+    color: '#FF2E40',
     marginLeft: 8,
   },
 
@@ -1705,7 +1705,7 @@ const styles = StyleSheet.create({
   },
   notificationText: {
     fontSize: 15,
-    color: '#374151',
+    color: '#A1A1AA',
     marginLeft: 12,
   },
 
@@ -1729,11 +1729,11 @@ const styles = StyleSheet.create({
   quickLinkTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   quickLinkSubtitle: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1A1AA',
     marginTop: 2,
   },
 
@@ -1754,7 +1754,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: palette.text,
     borderRadius: 999,
-    shadowColor: '#0F2828',
+    shadowColor: '#E5232E',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.18,
     shadowRadius: 22,
@@ -1783,7 +1783,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '85%',
@@ -1794,18 +1794,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   modalCloseButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1816,14 +1816,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: 'rgba(255,255,255,0.05)',
     gap: 12,
   },
   modalDefaultButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'rgba(124,224,107,0.12)',
     alignItems: 'center',
   },
   modalDefaultText: {
@@ -1835,19 +1835,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
   },
   modalCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   modalSaveButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1867,14 +1867,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   vehicleTypeButtonActive: {
-    backgroundColor: '#0D7377',
+    backgroundColor: '#FF2E40',
   },
   vehicleTypeText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1A1AA',
   },
   vehicleTypeTextActive: {
     color: '#FFFFFF',
@@ -1885,7 +1885,7 @@ const styles = StyleSheet.create({
   secureNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'rgba(124,224,107,0.12)',
     padding: 12,
     borderRadius: 10,
     marginTop: 8,
